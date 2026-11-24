@@ -137,6 +137,7 @@ body.auth .wrap{max-width:1100px}
 .owner-catalogue .course-grid{grid-template-columns:1fr}.owner-catalogue .course-cover{aspect-ratio:16/9}.course-card[hidden]{display:none!important}
 @media(min-width:1250px){.course-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.owner-catalogue .course-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.course-grid{grid-template-columns:1fr}.course-hero{grid-template-columns:1fr}.course-tools input,.course-tools select{flex-basis:100%}}
+input.course-order::-webkit-inner-spin-button,input.course-order::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input.course-order{appearance:textfield;-moz-appearance:textfield}
 </style>
 </head>
 <body>
@@ -218,7 +219,7 @@ function formSheet(title, fields, saveLabel, onSave, extra = '') {
   const f = fields.map(x => x.type === 'select'
     ? `<label>${esc(x.label)}</label><select name="${x.name}" ${x.required ? 'required' : ''}>${x.options.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(x.value ?? '') ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`
     : x.type === 'check' ? `<label class="row" style="font-weight:500"><input type="checkbox" name="${x.name}" ${x.value ? 'checked' : ''} style="width:20px;height:20px"> ${esc(x.label)}</label>`
-    : `<label>${esc(x.label)}</label><input type="${x.type || 'text'}" name="${x.name}" value="${esc(x.value ?? '')}" ${x.attrs || ''}>${x.hint ? `<div class="mut sm">${esc(x.hint)}</div>` : ''}`).join('');
+    : `<label>${esc(x.label)}</label><input type="${x.type || 'text'}" name="${x.name}" value="${esc(x.value ?? '')}" ${x.required ? 'required' : ''} ${x.attrs || ''}>${x.hint ? `<div class="mut sm">${esc(x.hint)}</div>` : ''}`).join('');
   sheet(`<h2 style="margin-top:4px">${esc(title)}</h2><form>${f}<div class="msg"></div><div class="row" style="margin-top:16px"><button type="button" class="btn grow x">Cancel</button><button class="btn pri grow">${esc(saveLabel)}</button></div></form>${extra}`, (d, close) => {
     $('.x', d).onclick = close;
     $('form', d).onsubmit = async e => { e.preventDefault(); const v = {}; fields.forEach(x => { const el = $(`[name=${x.name}]`, d); v[x.name] = x.type === 'check' ? (el.checked ? 1 : 0) : el.value; });
@@ -510,7 +511,7 @@ async function viewAdmin() {
     }
     const all = d.courses, L = id => all.flatMap(c => c.lessons).find(l => l.id == id), Q = id => all.flatMap(c => c.lessons).flatMap(l => l.questions).find(q => q.id == id);
 
-    const cf = (c = {}) => formSheet(c.id ? 'Edit course' : 'New course', [{name:'title',label:'Course title',value:c.title},{name:'descr',label:'One-line description',value:c.descr},{name:'category_id',label:'Category *',type:'select',required:true,value:(d.categories||[]).some(x=>+x.active&&+x.id===+c.category_id)?c.category_id:'',options:[['','Select category'],...(d.categories||[]).filter(x=>+x.active).map(x=>[x.id,x.name])]},{name:'sort',label:'Order (1 = first)',type:'number',value:c.sort??all.length+1},{name:'is_free',label:'Free course',type:'check',value:+c.is_free},{name:'published',label:'Live (visible to businesses)',type:'check',value:c.id?+c.published:1}], 'Save', async (v,close,el)=>{
+    const cf = (c = {}) => formSheet(c.id ? 'Edit course' : 'New course', [{name:'title',label:'Course title *',required:true,value:c.title},{name:'descr',label:'One-line description *',required:true,value:c.descr},{name:'category_id',label:'Category *',type:'select',required:true,value:(d.categories||[]).some(x=>+x.active&&+x.id===+c.category_id)?c.category_id:'',options:[['','Select category'],...(d.categories||[]).filter(x=>+x.active).map(x=>[x.id,x.name])]},{name:'sort',label:'Order (1 = first)',type:'number',attrs:'class="course-order" step="1"',value:c.sort??all.length+1},{name:'is_free',label:'Free course',type:'check',value:+c.is_free},{name:'published',label:'Live (visible to businesses)',type:'check',value:c.id?+c.published:1}], 'Save', async (v,close,el)=>{
       const file=$('[data-course-file]',el).files[0];if(file)v.thumbnail_data=await resizeCourseImage(file);
       v.remove_thumbnail=$('[data-remove-thumb]',el).checked?1:0;await api('a_course_save',{...v,id:c.id||0});close();viewAdmin();
     }, `<div class="course-upload"><label>Course thumbnail</label><div data-preview>${cover(c)}</div><input type="file" data-course-file accept="image/jpeg,image/png,image/webp"><p class="mut sm">JPG, PNG or WebP. Cropped and compressed to 1280 × 720.</p><label class="row"><input type="checkbox" data-remove-thumb style="width:18px;height:18px"> Remove current thumbnail</label></div>`);

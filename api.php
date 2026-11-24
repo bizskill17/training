@@ -347,6 +347,7 @@ case 'a_category_save':
     out(['ok'=>true]);
 case 'a_course_save':
     need('admin'); $t = s('title', 120); if ($t === '') fail('Enter a course title.');
+    $descr=s('descr',300); if ($descr === '') fail('Enter a one-line description.');
     $old=i('id')?row('SELECT * FROM courses WHERE id=?',[i('id')]):null;
     if (i('id') && !$old) fail('Course not found.',404);
     $cat=array_key_exists('category_id',$in)?i('category_id'):(int)($old['category_id']??0);
@@ -354,7 +355,7 @@ case 'a_course_save':
     $img=$old['thumbnail']??''; $new='';
     if (!empty($in['thumbnail_data'])) { $new=store_thumb((string)$in['thumbnail_data']); $img=$new; }
     elseif (!empty($in['remove_thumbnail'])) $img='';
-    $p=[$t,s('descr',300),i('is_free')?1:0,i('published')?1:0,i('sort'),$cat,$img];
+    $p=[$t,$descr,i('is_free')?1:0,i('published')?1:0,i('sort'),$cat,$img];
     try {
         if (i('id')) q('UPDATE courses SET title=?,descr=?,is_free=?,published=?,sort=?,category_id=?,thumbnail=? WHERE id=?',[...$p,i('id')]);
         else q('INSERT INTO courses (title,descr,is_free,published,sort,category_id,thumbnail) VALUES (?,?,?,?,?,?,?)',$p);
