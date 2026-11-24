@@ -1,4 +1,4 @@
-name: Deploy training to Hostinger (SFTP)
+name: Deploy training to Hostinger (FTPS)
 on:
   push:
     branches: [main]
@@ -14,31 +14,26 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Validate application
-        run: php -l api.php
-      - name: Verify SSH host key and upload
-        env:
-          SSH_HOST: '147.93.92.210'
-          SSH_PORT: '65002'
-          SSH_USER: 'u380752258'
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+      - name: Validate PHP and inspect FTP certificate
         shell: bash
         run: |
           set -euo pipefail
-          : "${SSH_PASSWORD:?Add SSH_PASSWORD to repository secrets}"
-          : "${SSH_HOST_FINGERPRINT:?Add SSH_HOST_FINGERPRINT to repository secrets}"
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq sshpass
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          ssh-keyscan -T 15 -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > ~/.ssh/training_known_hosts
-          actual=$(ssh-keygen -lf ~/.ssh/training_known_hosts -E sha256 | awk '{print $2}')
-          test "$actual" = "$SSH_HOST_FINGERPRINT" || { echo "SSH host fingerprint mismatch; deployment stopped."; exit 1; }
-          export SSHPASS="$SSH_PASSWORD"
-          opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/training_known_hosts" -o HostKeyAlgorithms=ssh-ed25519 -o ConnectTimeout=20)
-          target='domains/train.bizskilledu.com/public_html'
-          # Confirm the exact site directory exists; never fall back to another website.
-          sshpass -e ssh "${opts[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "test -d '$target' && test -f '$target/config.php'"
-          # Allowlist only; no database/config uploads or remote deletions.
-          sshpass -e scp -s "${opts[@]}" -P "$SSH_PORT" index.html api.php logo.png "$SSH_USER@$SSH_HOST:$target/"
+          php -l api.php
+          timeout 30 openssl s_client -starttls ftp -connect 147.93.92.210:21 -showcerts </dev/null > /tmp/ftp-cert.txt 2>/tmp/ftp-tls.log
+          openssl x509 -in /tmp/ftp-cert.txt -noout -subject -issuer -dates -ext subjectAltName -fingerprint -sha256
+      - name: Deploy with verified explicit FTPS
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${FTP_HOST:?Add verified FTP certificate hostname}"
+          : "${FTP_USERNAME:?Add FTP_USERNAME}"
+          : "${FTP_PASSWORD:?Add FTP_PASSWORD}"
+          # Verify the certificate before sending any account credentials.
+          timeout 30 openssl s_client -starttls ftp -connect 147.93.92.210:21 -servername "$FTP_HOST" -verify_hostname "$FTP_HOST" -verify_return_error </dev/null >/dev/null
+          for file in index.html api.php logo.png; do
+            curl --silent --show-error --fail --ssl-reqd --resolve "$FTP_HOST:21:147.93.92.210" --connect-timeout 25 --max-time 90 --ftp-pasv --user "$FTP_USERNAME:$FTP_PASSWORD" --upload-file "$file" "ftp://$FTP_HOST:21/public_html/$file"
+          done
