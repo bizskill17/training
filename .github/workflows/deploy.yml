@@ -1,4 +1,4 @@
-name: Deploy training to Hostinger
+name: Deploy training to Hostinger (SFTP)
 on:
   push:
     branches: [main]
@@ -14,19 +14,31 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Validate and deploy application files
+      - name: Validate application
+        run: php -l api.php
+      - name: Verify SSH host key and upload
         env:
-          FTP_HOST: ${{ secrets.FTP_HOST }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          SSH_HOST: '147.93.92.210'
+          SSH_PORT: '65002'
+          SSH_USER: 'u380752258'
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
         shell: bash
         run: |
           set -euo pipefail
-          : "${FTP_HOST:?Add FTP_HOST in repository secrets}"
-          : "${FTP_USERNAME:?Add FTP_USERNAME in repository secrets}"
-          : "${FTP_PASSWORD:?Add FTP_PASSWORD in repository secrets}"
-          php -l api.php
-          # Explicit allowlist: never upload config.php or touch data/.
-          for file in index.html api.php logo.png; do
-            curl --silent --show-error --fail --ssl-reqd --connect-timeout 20 --max-time 90 --ftp-pasv --user "$FTP_USERNAME:$FTP_PASSWORD" --upload-file "$file" "ftp://$FTP_HOST:21/public_html/$file"
-          done
+          : "${SSH_PASSWORD:?Add SSH_PASSWORD to repository secrets}"
+          : "${SSH_HOST_FINGERPRINT:?Add SSH_HOST_FINGERPRINT to repository secrets}"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sshpass
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -T 15 -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > ~/.ssh/training_known_hosts
+          actual=$(ssh-keygen -lf ~/.ssh/training_known_hosts -E sha256 | awk '{print $2}')
+          test "$actual" = "$SSH_HOST_FINGERPRINT" || { echo "SSH host fingerprint mismatch; deployment stopped."; exit 1; }
+          export SSHPASS="$SSH_PASSWORD"
+          opts=(-o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/training_known_hosts" -o HostKeyAlgorithms=ssh-ed25519 -o ConnectTimeout=20)
+          target='domains/train.bizskilledu.com/public_html'
+          # Confirm the exact site directory exists; never fall back to another website.
+          sshpass -e ssh "${opts[@]}" -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "test -d '$target' && test -f '$target/config.php'"
+          # Allowlist only; no database/config uploads or remote deletions.
+          sshpass -e scp -s "${opts[@]}" -P "$SSH_PORT" index.html api.php logo.png "$SSH_USER@$SSH_HOST:$target/"
