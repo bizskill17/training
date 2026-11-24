@@ -41,12 +41,12 @@ try { $db->query('SELECT lastpos FROM progress LIMIT 1'); } catch (Throwable $e)
 
 // Course catalogue metadata (additive migration).
 $db->exec("CREATE TABLE IF NOT EXISTS categories (id $PK, name VARCHAR(100) NOT NULL UNIQUE, active INT NOT NULL DEFAULT 1)$T");
-foreach (['category_id'=>'INT NOT NULL DEFAULT 0','instructor'=>"VARCHAR(120) NOT NULL DEFAULT ''",'thumbnail'=>"VARCHAR(100) NOT NULL DEFAULT ''"] as $col=>$def) {
+foreach (['category_id'=>'INT NOT NULL DEFAULT 0','thumbnail'=>"VARCHAR(100) NOT NULL DEFAULT ''"] as $col=>$def) {
     try { $db->query("SELECT $col FROM courses LIMIT 1"); }
     catch (Throwable $e) { try { $db->exec("ALTER TABLE courses ADD COLUMN $col $def"); } catch (Throwable $race) { $db->query("SELECT $col FROM courses LIMIT 1"); } }
 }
 function category_name($id): string { return (string)(val('SELECT name FROM categories WHERE id=?',[(int)$id]) ?? ''); }
-function course_meta(array $c): array { return ['category_id'=>(int)$c['category_id'],'category'=>category_name($c['category_id']),'instructor'=>$c['instructor'],'thumbnail'=>$c['thumbnail']]; }
+function course_meta(array $c): array { return ['category_id'=>(int)$c['category_id'],'category'=>category_name($c['category_id']),'thumbnail'=>$c['thumbnail']]; }
 function store_thumb(string $data): string {
     if (strlen($data)>2000000 || !preg_match('~^data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$~D',$data,$m)) fail('Invalid thumbnail.');
     $raw=base64_decode($m[2],true); if (!$raw || strlen($raw)>1400000) fail('Thumbnail too large.');
@@ -180,7 +180,7 @@ case 'dash':
     $courses = allowed_courses(['role' => 'owner', 'business_id' => $bid, 'id' => 0]); $cl = [];
     foreach ($courses as $c) $cl[(int)$c['id']] = ['id' => (int)$c['id'], 'title' => $c['title'], 'descr' => $c['descr'], 'is_free' => (int)$c['is_free'], ...course_meta($c),
         'lessons' => (int)val('SELECT COUNT(*) FROM lessons WHERE course_id=?', [$c['id']])];
-    $locked = $b['paid'] ? [] : rows('SELECT id,title,descr,thumbnail,category_id,instructor,(SELECT name FROM categories WHERE id=c.category_id) AS category,(SELECT COUNT(*) FROM lessons l WHERE l.course_id=c.id) AS lessons FROM courses c WHERE published=1 AND is_free=0 ORDER BY sort,id');
+    $locked = $b['paid'] ? [] : rows('SELECT id,title,descr,thumbnail,category_id,(SELECT name FROM categories WHERE id=c.category_id) AS category,(SELECT COUNT(*) FROM lessons l WHERE l.course_id=c.id) AS lessons FROM courses c WHERE published=1 AND is_free=0 ORDER BY sort,id');
     $staff = [];
     foreach (rows("SELECT id,name,mobile,active,last_active FROM users WHERE business_id=? AND role='employee' ORDER BY active DESC, name", [$bid]) as $e) {
         $tot = 0; $done = 0; $mins = 0; $sc = []; $over = 0; $cs = [];
@@ -354,10 +354,10 @@ case 'a_course_save':
     $img=$old['thumbnail']??''; $new='';
     if (!empty($in['thumbnail_data'])) { $new=store_thumb((string)$in['thumbnail_data']); $img=$new; }
     elseif (!empty($in['remove_thumbnail'])) $img='';
-    $p=[$t,s('descr',300),i('is_free')?1:0,i('published')?1:0,i('sort'),$cat,array_key_exists('instructor',$in)?s('instructor',120):($old['instructor']??''),$img];
+    $p=[$t,s('descr',300),i('is_free')?1:0,i('published')?1:0,i('sort'),$cat,$img];
     try {
-        if (i('id')) q('UPDATE courses SET title=?,descr=?,is_free=?,published=?,sort=?,category_id=?,instructor=?,thumbnail=? WHERE id=?',[...$p,i('id')]);
-        else q('INSERT INTO courses (title,descr,is_free,published,sort,category_id,instructor,thumbnail) VALUES (?,?,?,?,?,?,?,?)',$p);
+        if (i('id')) q('UPDATE courses SET title=?,descr=?,is_free=?,published=?,sort=?,category_id=?,thumbnail=? WHERE id=?',[...$p,i('id')]);
+        else q('INSERT INTO courses (title,descr,is_free,published,sort,category_id,thumbnail) VALUES (?,?,?,?,?,?,?)',$p);
     } catch (Throwable $e) { if ($new) @unlink(__DIR__.'/uploads/courses/'.$new); throw $e; }
     if ($old && $old['thumbnail']!==$img && preg_match('/^[a-f0-9]{32}\.jpg$/D',$old['thumbnail'])) @unlink(__DIR__.'/uploads/courses/'.$old['thumbnail']);
     out(['id' => i('id') ?: (int)$db->lastInsertId()]);
