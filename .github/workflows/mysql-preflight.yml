@@ -1,0 +1,93 @@
+name: MySQL migration preflight
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/mysql-preflight.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: training-database-migration
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify MySQL from hosting server (read only)
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${DB_HOST:?DB_HOST missing}" "${DB_NAME:?DB_NAME missing}" "${DB_USER:?DB_USER missing}" "${DB_PASSWORD:?DB_PASSWORD missing}"
+          tmp=$(mktemp -d)
+          remote="migration-check-$(openssl rand -hex 20).php"
+          export TOKEN=$(openssl rand -hex 32)
+          opts=(--silent --show-error --fail --ssl-reqd --resolve server2057.hstgr.io:21:147.93.92.210 --connect-timeout 20 --max-time 60 --user "$FTP_USERNAME:$FTP_PASSWORD")
+          base=ftp://server2057.hstgr.io:21/
+          uploaded=0
+          cleanup() {
+            if [ "$uploaded" = 1 ]; then
+              curl "${opts[@]}" --quote "DELE $remote" --list-only "$base" -o /dev/null || { echo 'Temporary endpoint cleanup failed; remove migration-check file from hosting.'; return 1; }
+            fi
+            rm -rf "$tmp"
+          }
+          trap cleanup EXIT
+          cat > "$tmp/check.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          ini_set('display_errors','0');
+          header('Content-Type: application/json');
+          header('Cache-Control: no-store');
+          function reply(string $status): void { echo json_encode(['status'=>$status]); exit; }
+          if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(404); exit; }
+          $in = json_decode(file_get_contents('php://input'), true);
+          if (!is_array($in) || !hash_equals('__TOKEN_HASH__', hash('sha256', (string)($in['token'] ?? '')))) { http_response_code(404); exit; }
+          try {
+              $c = require __DIR__.'/config.php';
+              if (!str_starts_with($c['db_dsn'], 'sqlite:')) reply('SOURCE_NOT_SQLITE');
+              $path = substr($c['db_dsn'],7);
+              if (!is_file($path)) reply('SOURCE_FILE_MISSING');
+              $src = new PDO($c['db_dsn'], null, null, [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+              $src->exec('PRAGMA query_only=ON');
+              if ($src->query('PRAGMA quick_check')->fetchColumn() !== 'ok') reply('SOURCE_INTEGRITY_FAILED');
+              $tables = ['businesses','users','courses','lessons','questions','assignments','progress','payments','throttle'];
+              foreach ($tables as $t) $src->query('SELECT COUNT(*) FROM "'.$t.'"')->fetchColumn();
+          } catch (Throwable $e) { reply('SOURCE_CHECK_FAILED'); }
+          try {
+              if (!in_array($in['host'], ['localhost','127.0.0.1'], true) || !preg_match('/^[A-Za-z0-9_]+$/D',$in['db'])) reply('INVALID_DATABASE_SETTINGS');
+              $dst = new PDO('mysql:host='.$in['host'].';dbname='.$in['db'].';charset=utf8mb4', $in['user'], $in['password'], [PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT=>5]);
+              $dst->query('SELECT 1')->fetchColumn();
+              if ($dst->query('SHOW TABLES')->fetchColumn() !== false) reply('MYSQL_NOT_EMPTY');
+              reply('MYSQL_CONNECTED_SOURCE_HEALTHY_TARGET_EMPTY');
+          } catch (Throwable $e) { reply('MYSQL_CONNECTION_FAILED'); }
+          PHP
+          hash=$(printf '%s' "$TOKEN" | sha256sum | cut -d' ' -f1)
+          sed -i "s/__TOKEN_HASH__/$hash/" "$tmp/check.php"
+          php -l "$tmp/check.php"
+          python3 - "$tmp/request.json" <<'PY'
+          import os,json,sys
+          keys={'token':'TOKEN','host':'DB_HOST','db':'DB_NAME','user':'DB_USER','password':'DB_PASSWORD'}
+          with open(sys.argv[1],'w') as f: json.dump({k:os.environ[v] for k,v in keys.items()},f)
+          PY
+          uploaded=1
+          curl "${opts[@]}" --upload-file "$tmp/check.php" "$base$remote"
+          curl --silent --show-error --fail --max-time 45 --proto '=https' -H 'Content-Type: application/json' --data-binary "@$tmp/request.json" "https://train.bizskilledu.com/$remote" -o "$tmp/result"
+          python3 - "$tmp/result" <<'PY'
+          import json,sys
+          status=json.load(open(sys.argv[1])).get('status')
+          allowed={'MYSQL_CONNECTED_SOURCE_HEALTHY_TARGET_EMPTY','MYSQL_NOT_EMPTY','MYSQL_CONNECTION_FAILED','SOURCE_NOT_SQLITE','SOURCE_FILE_MISSING','SOURCE_INTEGRITY_FAILED','SOURCE_CHECK_FAILED','INVALID_DATABASE_SETTINGS'}
+          if status not in allowed: raise SystemExit('Unexpected diagnostic response')
+          print('PREFLIGHT_STATUS='+status)
+          if status!='MYSQL_CONNECTED_SOURCE_HEALTHY_TARGET_EMPTY': sys.exit(1)
+          PY
+          cleanup
+          uploaded=0
+          trap - EXIT
