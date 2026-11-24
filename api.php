@@ -350,7 +350,7 @@ case 'a_course_save':
     $old=i('id')?row('SELECT * FROM courses WHERE id=?',[i('id')]):null;
     if (i('id') && !$old) fail('Course not found.',404);
     $cat=array_key_exists('category_id',$in)?i('category_id'):(int)($old['category_id']??0);
-    if ($cat && !val('SELECT 1 FROM categories WHERE id=? AND (active=1 OR id=?)',[$cat,(int)($old['category_id']??0)])) fail('Select an active category.');
+    if ($cat <= 0 || !val('SELECT 1 FROM categories WHERE id=? AND active=1',[$cat])) fail('Select an active category. Category is required.');
     $img=$old['thumbnail']??''; $new='';
     if (!empty($in['thumbnail_data'])) { $new=store_thumb((string)$in['thumbnail_data']); $img=$new; }
     elseif (!empty($in['remove_thumbnail'])) $img='';
