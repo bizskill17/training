@@ -1,0 +1,176 @@
+name: Selective MySQL production cutover
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/mysql-cutover.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: training-database-migration
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Copy admin and training content, verify and switch
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          : "${DB_HOST:?DB_HOST missing}" "${DB_NAME:?DB_NAME missing}" "${DB_USER:?DB_USER missing}" "${DB_PASSWORD:?DB_PASSWORD missing}"
+          tmp=$(mktemp -d)
+          remote="migration-cutover-$(openssl rand -hex 20).php"
+          export TOKEN=$(openssl rand -hex 32)
+          opts=(--silent --show-error --fail --ssl-reqd --resolve server2057.hstgr.io:21:147.93.92.210 --connect-timeout 20 --max-time 60 --user "$FTP_USERNAME:$FTP_PASSWORD")
+          base=ftp://server2057.hstgr.io:21/
+          uploaded=0
+          cleanup() {
+            if [ "$uploaded" = 1 ]; then
+              curl "${opts[@]}" --quote "*DELE $remote.lock" --quote "DELE $remote" --list-only "$base" -o /dev/null || { echo 'Temporary endpoint cleanup failed; remove migration-cutover file from hosting.'; return 1; }
+            fi
+            rm -rf "$tmp"
+          }
+          trap cleanup EXIT
+          cat > "$tmp/check.php" <<'PHP'
+          <?php
+          declare(strict_types=1);
+          ini_set('display_errors','0');
+          header('Content-Type: application/json');
+          header('Cache-Control: no-store');
+          function reply(string $status, array $counts=[]): void { echo json_encode(['status'=>$status,'counts'=>$counts]); exit; }
+          if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(404); exit; }
+          $in=json_decode(file_get_contents('php://input'),true);
+          if (!is_array($in) || !hash_equals('__TOKEN_HASH__',hash('sha256',(string)($in['token']??'')))) { http_response_code(404); exit; }
+          $stage='CONFIG';
+          $dst=null; $temp=null; $lock=null;
+          try {
+              $lock=fopen(__FILE__.'.lock','x');
+              if (!$lock) reply('MIGRATION_ALREADY_STARTED');
+              $config=__DIR__.'/config.php';
+              $c=require $config;
+              if (!str_starts_with($c['db_dsn'],'sqlite:')) reply('SOURCE_NOT_SQLITE');
+              if (!in_array($in['host'],['localhost','127.0.0.1'],true) || !preg_match('/^[A-Za-z0-9_]+$/D',$in['db'])) reply('INVALID_SETTINGS');
+              $stage='SOURCE';
+              if (!is_file(substr($c['db_dsn'],7))) reply('SOURCE_MISSING');
+              $src=new PDO($c['db_dsn'],null,null,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+              $src->exec('PRAGMA busy_timeout=5000');
+              if ($src->query('PRAGMA quick_check')->fetchColumn()!=='ok') reply('SOURCE_INTEGRITY_FAILED');
+              $stage='BACKUP';
+              $backupDir=dirname(__DIR__).'/training-backup-'.bin2hex(random_bytes(12));
+              if (!mkdir($backupDir,0700)) throw new RuntimeException();
+              if (!copy($config,$backupDir.'/config.php') || !chmod($backupDir.'/config.php',0600)) throw new RuntimeException();
+              $src->exec('VACUUM INTO '.$src->quote($backupDir.'/source.sqlite'));
+              if (!chmod($backupDir.'/source.sqlite',0600)) throw new RuntimeException();
+              $stage='SNAPSHOT';
+              $src->beginTransaction();
+              $stmt=$src->prepare("SELECT * FROM users WHERE role='admin' AND LOWER(TRIM(name))=LOWER(?) AND active=1");
+              $stmt->execute(['Pankaj Jain']);
+              $admins=$stmt->fetchAll();
+              if (count($admins)!==1 || $admins[0]['business_id']!==null) reply('ADMIN_NOT_UNIQUE_OR_INVALID');
+              $data=['users'=>$admins];
+              foreach (['courses','lessons','questions'] as $t) $data[$t]=$src->query('SELECT * FROM "'.$t.'" ORDER BY id')->fetchAll();
+              $maxUser=(int)$src->query('SELECT COALESCE(MAX(id),0) FROM users')->fetchColumn();
+              $src->commit();
+              $stage='MYSQL_CONNECT';
+              $dsn='mysql:host='.$in['host'].';dbname='.$in['db'].';charset=utf8mb4';
+              $dst=new PDO($dsn,$in['user'],$in['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
+              $tables=['businesses','users','courses','lessons','questions','assignments','progress','payments','throttle'];
+              $existing=$dst->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
+              foreach ($existing as $t) {
+                  if (!in_array($t,$tables,true) || (int)$dst->query('SELECT COUNT(*) FROM `'.$t.'`')->fetchColumn()!==0) reply('TARGET_NOT_EMPTY');
+              }
+              $stage='SCHEMA';
+              $db=$dst; $isLite=false;
+          $PK = $isLite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INT AUTO_INCREMENT PRIMARY KEY';
+          $T  = $isLite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+          foreach ([
+           "CREATE TABLE IF NOT EXISTS businesses (id $PK, name VARCHAR(120) NOT NULL, plan VARCHAR(10) NOT NULL DEFAULT 'free', paid_until INT NOT NULL DEFAULT 0, created INT NOT NULL)$T",
+           "CREATE TABLE IF NOT EXISTS users (id $PK, business_id INT NULL, role VARCHAR(10) NOT NULL, name VARCHAR(80) NOT NULL, mobile VARCHAR(15) NOT NULL UNIQUE, pass VARCHAR(255) NOT NULL, active INT NOT NULL DEFAULT 1, created INT NOT NULL, last_active INT NOT NULL DEFAULT 0)$T",
+           "CREATE TABLE IF NOT EXISTS courses (id $PK, title VARCHAR(120) NOT NULL, descr VARCHAR(300) NOT NULL DEFAULT '', is_free INT NOT NULL DEFAULT 0, published INT NOT NULL DEFAULT 1, sort INT NOT NULL DEFAULT 0)$T",
+           "CREATE TABLE IF NOT EXISTS lessons (id $PK, course_id INT NOT NULL, title VARCHAR(160) NOT NULL, yt VARCHAR(20) NOT NULL DEFAULT '', duration INT NOT NULL DEFAULT 0, sort INT NOT NULL DEFAULT 0)$T",
+           "CREATE TABLE IF NOT EXISTS questions (id $PK, lesson_id INT NOT NULL, q VARCHAR(400) NOT NULL, a VARCHAR(200) NOT NULL, b VARCHAR(200) NOT NULL, c VARCHAR(200) NOT NULL DEFAULT '', d VARCHAR(200) NOT NULL DEFAULT '', correct INT NOT NULL DEFAULT 0)$T",
+           "CREATE TABLE IF NOT EXISTS assignments (id $PK, business_id INT NOT NULL, user_id INT NOT NULL, course_id INT NOT NULL, due INT NOT NULL DEFAULT 0, created INT NOT NULL, UNIQUE (user_id, course_id))$T",
+           "CREATE TABLE IF NOT EXISTS progress (user_id INT NOT NULL, lesson_id INT NOT NULL, watched INT NOT NULL DEFAULT 0, maxpos INT NOT NULL DEFAULT 0, completed INT NOT NULL DEFAULT 0, last_beat INT NOT NULL DEFAULT 0, lastpos INT NOT NULL DEFAULT 0, score INT NULL, first_score INT NULL, attempts INT NOT NULL DEFAULT 0, passed INT NOT NULL DEFAULT 0, PRIMARY KEY (user_id, lesson_id))$T",
+           "CREATE TABLE IF NOT EXISTS payments (id $PK, business_id INT NOT NULL, order_id VARCHAR(40) NOT NULL, payment_id VARCHAR(40) NOT NULL UNIQUE, amount INT NOT NULL, created INT NOT NULL)$T",
+           "CREATE TABLE IF NOT EXISTS throttle (k VARCHAR(80) PRIMARY KEY, n INT NOT NULL, t INT NOT NULL)$T",
+          ] as $sql) $db->exec($sql);
+          
+              // Do not reuse old employee IDs; stale SQLite sessions must never map to a new user.
+              $dst->exec('ALTER TABLE users AUTO_INCREMENT='.($maxUser+1));
+              $stage='COPY';
+              $dst->beginTransaction();
+              $counts=[];
+              foreach ($data as $t=>$records) {
+                  foreach ($records as $record) {
+                      $cols=array_keys($record);
+                      foreach ($cols as $col) if (!preg_match('/^[a-z_]+$/D',$col)) throw new RuntimeException();
+                      $sql='INSERT INTO `'.$t.'` (`'.implode('`,`',$cols).'`) VALUES ('.implode(',',array_fill(0,count($cols),'?')).')';
+                      $dst->prepare($sql)->execute(array_values($record));
+                  }
+                  $actual=$dst->query('SELECT * FROM `'.$t.'` ORDER BY id')->fetchAll();
+                  if (count($records)!==count($actual)) throw new RuntimeException();
+                  foreach ($records as $i=>$record) foreach ($record as $k=>$v) {
+                      $w=$actual[$i][$k];
+                      if (($v===null)!==($w===null) || ($v!==null && (string)$v!==(string)$w)) throw new RuntimeException();
+                  }
+                  $counts[$t]=count($records);
+              }
+              foreach (array_diff($tables,array_keys($data)) as $t) {
+                  if ((int)$dst->query('SELECT COUNT(*) FROM `'.$t.'`')->fetchColumn()!==0) throw new RuntimeException();
+                  $counts[$t]=0;
+              }
+              $stage='CONFIG_PREPARE';
+              $c['db_dsn']=$dsn; $c['db_user']=$in['user']; $c['db_pass']=$in['password'];
+              $temp=__DIR__.'/config-next-'.bin2hex(random_bytes(16)).'.php';
+              if (file_put_contents($temp,"<?php\nreturn ".var_export($c,true).";\n",LOCK_EX)===false || !chmod($temp,0600)) throw new RuntimeException();
+              $verify=require $temp;
+              if ($verify!==$c) throw new RuntimeException();
+              $stage='COMMIT';
+              $dst->commit();
+              $stage='SWITCH';
+              if (!rename($temp,$config)) throw new RuntimeException();
+              $temp=null;
+              if (function_exists('opcache_invalidate')) @opcache_invalidate($config,true);
+              reply('MYSQL_SWITCHED_VERIFIED',$counts);
+          } catch (Throwable $e) {
+              if ($dst instanceof PDO && $dst->inTransaction()) $dst->rollBack();
+              if ($temp!==null && is_file($temp)) @unlink($temp);
+              reply('FAILED_'.$stage);
+          }
+          PHP
+          hash=$(printf '%s' "$TOKEN" | sha256sum | cut -d' ' -f1)
+          sed -i "s/__TOKEN_HASH__/$hash/" "$tmp/check.php"
+          php -l "$tmp/check.php"
+          python3 - "$tmp/request.json" <<'PY'
+          import os,json,sys
+          keys={'token':'TOKEN','host':'DB_HOST','db':'DB_NAME','user':'DB_USER','password':'DB_PASSWORD'}
+          with open(sys.argv[1],'w') as f: json.dump({k:os.environ[v] for k,v in keys.items()},f)
+          PY
+          uploaded=1
+          curl "${opts[@]}" --upload-file "$tmp/check.php" "$base$remote"
+          curl --silent --show-error --fail --max-time 180 --proto '=https' -H 'Content-Type: application/json' --data-binary "@$tmp/request.json" "https://train.bizskilledu.com/$remote" -o "$tmp/result"
+          python3 - "$tmp/result" <<'PY'
+          import json,sys
+          result=json.load(open(sys.argv[1]))
+          status=result.get('status','UNKNOWN')
+          import re
+          if not re.fullmatch(r'[A-Z_]+',status): raise SystemExit('Unexpected response')
+          print('CUTOVER_STATUS='+status)
+          if status!='MYSQL_SWITCHED_VERIFIED': sys.exit(1)
+          counts=result.get('counts',{})
+          for table in ['users','courses','lessons','questions','businesses','assignments','progress','payments','throttle']:
+              print(table+'='+str(int(counts[table])))
+          PY
+          cleanup
+          uploaded=0
+          trap - EXIT
+          curl --silent --show-error --fail --max-time 30 --proto '=https' -H 'X-App: 1' -H 'Content-Type: application/json' --data '{}' 'https://train.bizskilledu.com/api.php?a=me' | python3 -c 'import json,sys; d=json.load(sys.stdin); assert "user" in d and "brand" in d; print("LIVE_API_OK")'
