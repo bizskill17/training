@@ -37,20 +37,26 @@ jobs:
           # Account may be jailed directly inside the site's document root.
           opts=(--silent --show-error --fail --ssl-reqd --resolve "$FTP_HOST:21:147.93.92.210" --connect-timeout 25 --max-time 90 --ftp-pasv --user "$FTP_USERNAME:$FTP_PASSWORD")
           base="ftp://$FTP_HOST:21"
-          # Verify existing application files against the live site's public files.
-          # Never read config.php or database files.
+          # Inspect authenticated FTP root without accessing private configuration.
+          echo 'FTP root listing:'
+          curl "${opts[@]}" --list-only "$base/"
           tmp=$(mktemp -d)
           trap 'rm -rf "$tmp"' EXIT
-          curl --silent --show-error --fail --location --max-time 30 https://train.bizskilledu.com/logo.png -o "$tmp/live-logo"
           target=''
           for dir in '/' '/public_html/' '/domains/train.bizskilledu.com/public_html/'; do
-            if curl "${opts[@]}" "$base${dir}logo.png" -o "$tmp/remote-logo" && cmp -s "$tmp/live-logo" "$tmp/remote-logo" && curl "${opts[@]}" "$base${dir}index.html" -o "$tmp/remote-index" && grep -qi 'BizSkill' "$tmp/remote-index" && curl "${opts[@]}" "$base${dir}api.php" -o "$tmp/remote-api" && grep -q 'BizSkill Training' "$tmp/remote-api"; then
-              target="$dir"
-              break
+            echo "Checking $dir"
+            if curl "${opts[@]}" "$base${dir}index.html" -o "$tmp/index" && curl "${opts[@]}" "$base${dir}api.php" -o "$tmp/api"; then
+              if grep -qi 'BizSkill' "$tmp/index" && grep -q 'BizSkill Training' "$tmp/api"; then
+                target="$dir"
+                break
+              fi
             fi
           done
-          test -n "$target" || { echo 'Could not verify the training site directory; no files uploaded.'; exit 1; }
-          echo "Verified training application directory: $target"
+          test -n "$target" || { echo 'Training application files not found; no upload performed.'; exit 1; }
+          echo "Verified training directory: $target"
           for file in index.html api.php logo.png; do
             curl "${opts[@]}" --upload-file "$file" "$base$target$file"
+            curl "${opts[@]}" "$base$target$file" -o "$tmp/verify"
+            cmp "$file" "$tmp/verify"
+            echo "Uploaded and verified $file"
           done
