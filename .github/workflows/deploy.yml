@@ -23,13 +23,13 @@ jobs:
           openssl x509 -in /tmp/ftp-cert.txt -noout -subject -issuer -dates -ext subjectAltName -fingerprint -sha256
       - name: Deploy with verified explicit FTPS
         env:
-          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_HOST: 'server2057.hstgr.io'
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
-          : "${FTP_HOST:?Add verified FTP certificate hostname}"
+          : "${FTP_HOST:?Missing FTP certificate hostname}"
           : "${FTP_USERNAME:?Add FTP_USERNAME}"
           : "${FTP_PASSWORD:?Add FTP_PASSWORD}"
           # Verify the certificate before sending any account credentials.
