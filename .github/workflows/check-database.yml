@@ -1,0 +1,32 @@
+name: Check production database type
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/check-database.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read database driver only via verified FTPS
+        env:
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          curl --silent --show-error --fail --ssl-reqd --resolve server2057.hstgr.io:21:147.93.92.210 --connect-timeout 25 --max-time 60 --user "$FTP_USERNAME:$FTP_PASSWORD" ftp://server2057.hstgr.io:21/config.php -o "$tmp"
+          python3 - "$tmp" <<'PY'
+          import re, sys
+          s = open(sys.argv[1]).read()
+          m = re.search(r"""['"]db_dsn['"]\s*=>\s*['"](sqlite|mysql):""", s, re.I)
+          print("PRODUCTION_DATABASE_DRIVER=" + (m.group(1).upper() if m else "UNDETERMINED"))
+          if not m:
+              sys.exit(1)
+          PY
