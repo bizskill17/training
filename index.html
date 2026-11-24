@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e86826">
+<title>BizSkill Training</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap">
+<style>
+:root{--bg:#F7F5F0;--card:#fff;--ink:#1E1E22;--mut:#5F5F68;--line:#E6E1D6;--or:#C2470F;--orl:#FDF1EA;--gr:#0B7A5E;--grl:#D9F2E8;--rd:#B3261E;--rdl:#FADCD9;--yl:#FDE7C7;--hd:'Space Grotesk',Inter,system-ui,sans-serif;--sh:0 1px 2px rgba(30,30,34,.05)}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px 96px}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+header.top .in{max-width:720px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+img.lg{border:1px solid var(--ink);border-radius:3px;flex:none}
+.logo{font-family:var(--hd);font-weight:700;letter-spacing:.2px}
+.grow{flex:1;min-width:0}.sub{color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:flex;background:#EFEBE2;border-radius:12px;padding:4px;margin:12px 0}
+.seg button{flex:1;border:0;background:none;padding:10px 6px;border-radius:9px;font-weight:600;color:var(--mut);cursor:pointer}
+.seg.four button{font-size:13px;padding:10px 2px}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+h1{font-family:var(--hd);font-size:24px;line-height:1.2;margin:18px 0 6px}h2{font-family:var(--hd);font-size:18px;margin:22px 0 10px}
+p{margin:6px 0}.mut{color:var(--mut)}.sm{font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:10px 0;box-shadow:var(--sh)}
+.card.tap{cursor:pointer}.card.tap:hover{border-color:#CFC8B8}.card.tap:active{background:#F6F3EC}
+.row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}
+.btn{color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 18px;border-radius:12px;border:1px solid #D5CFC2;background:#fff;font-weight:700;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:#B9B2A2}.btn.pri{background:var(--or);border-color:var(--or);color:#fff}.btn.pri:hover{background:#A83C0B;border-color:#A83C0B}
+.btn.sm{min-height:38px;padding:0 13px;font-size:14px;border-radius:10px}
+.btn.wide{width:100%}.btn.danger{color:var(--rd)}.btn[disabled]{opacity:.5}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.tiles.t3{grid-template-columns:repeat(3,1fr)}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--sh);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.tile .n{font-family:var(--hd);font-size:26px;font-weight:700;line-height:1.1}.tile .n span{font-size:14px;font-weight:600;color:var(--mut)}.tile .l{font-size:12px;color:var(--mut);margin-top:3px;font-weight:500}
+.tile .ring{flex:none}
+.bar{height:10px;background:#EEE9DF;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--or);border-radius:6px}
+.bar.ok i{background:var(--gr)}.bar.bad i{background:var(--rd)}
+.tag{white-space:nowrap;display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#EEE9DF;color:#4A4A52}
+.tag.ok{background:var(--grl);color:#0A6B52}.tag.bad{background:var(--rdl);color:#A1211A}.tag.or{background:var(--yl);color:#7A4300}
+.banner{background:var(--yl);border-radius:16px;padding:16px;margin:12px 0}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+input[type=text],input[type=tel],input[type=password],input[type=date],input[type=number],select{width:100%;min-height:46px;padding:0 12px;border:1px solid #CFC9BC;border-radius:10px;background:#fff}
+input:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+.err{background:var(--rdl);color:#A1211A;padding:10px 12px;border-radius:10px;margin:10px 0;font-size:14px}
+.okm{background:var(--grl);color:#0A6B52;padding:10px 12px;border-radius:10px;margin:10px 0;font-size:14px}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(20,20,24,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet .box{background:var(--bg);width:100%;max-width:720px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 18px 28px}
+.stats{display:flex;gap:14px;font-size:13px;color:var(--mut);margin-top:8px;flex-wrap:wrap}.stats b{color:var(--ink)}
+.lesson{display:flex;gap:12px;align-items:center}.num{width:34px;height:34px;border-radius:50%;background:#EEE9DF;display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.num.done{background:var(--gr);color:#fff}.num.open{background:var(--or);color:#fff}
+.player{position:relative;margin:12px auto;width:100%;max-width:min(100%,calc(62vh*9/16));aspect-ratio:9/16;background:#111;border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(30,30,34,.18)}
+.player.wide{max-width:100%;aspect-ratio:16/9}
+.player iframe,.player #yt{position:absolute;inset:0;width:100%;height:100%;border:0}
+.player .cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:0;width:100%}
+.player .cover span{width:80px;height:80px;border-radius:50%;background:var(--or);display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;padding-left:6px}
+.player .cover.playing span{display:none}
+.pbar{height:8px;background:#E6E1D6;border-radius:6px;overflow:hidden;margin:10px 0 8px}.pbar i{display:block;height:100%;background:var(--or);width:0}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:13px;border:1px solid var(--line);border-radius:12px;margin:8px 0;background:#fff;cursor:pointer}
+.opt input{margin-top:3px;width:18px;height:18px;flex:none;accent-color:var(--or)}.opt.right{border-color:var(--gr);background:var(--grl)}.opt.wrong{border-color:var(--rd);background:var(--rdl)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.link{background:none;border:0;color:var(--or);font-weight:700;padding:6px 0;cursor:pointer;text-decoration:underline}
+.hero{background:var(--ink);color:#fff;border-radius:20px;padding:24px 20px;margin:16px 0}.hero h1{margin-top:0}.hero .mut{color:#C9C6BF}
+.preview{background:var(--orl);color:#7A3208;font-size:13px;font-weight:600;padding:9px 12px;border-radius:10px;margin:10px 0}
+details.card summary{cursor:pointer;font-weight:700;list-style:none}details.card summary::-webkit-details-marker{display:none}
+.pw{position:relative}.pw input{padding-right:50px}.eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;background:none;color:var(--mut);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px}.eye:hover{color:var(--ink)}
+.authbox{max-width:420px;margin:0 auto;padding-top:7vh}.authbrand{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:20px}.authbrand img{border:1px solid var(--ink);border-radius:5px}.authbrand b{font-family:var(--hd);font-size:26px;white-space:nowrap}
+.phead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0}.phead h1{margin:2px 0}
+.cols{display:flex;flex-wrap:wrap;gap:0 20px;align-items:flex-start}.colmain{flex:3 1 560px;min-width:0}.colside{flex:1 1 280px;min-width:0}
+.attn{display:flex;gap:10px;font-size:14px;margin-top:10px}.attn i{width:10px;height:10px;border-radius:50%;background:#9A9AA3;margin-top:5px;flex:none}.attn i.bad{background:var(--rd)}
+.stf{width:100%;border-collapse:collapse;display:block}.stf thead{display:none}.stf tbody{display:block}
+.stf tr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:10px 0;box-shadow:var(--sh);cursor:pointer}
+.stf tr.off{opacity:.6}.stf td{padding:0;font-size:13px;color:var(--mut)}.stf td b{color:var(--ink)}
+.stf td.nm{flex:1 1 55%;font-size:16px}.stf td.pr{flex:1 1 100%}.stf td[data-l]::before{content:attr(data-l) " ";}
+.cgrid{display:grid;grid-template-columns:1fr;gap:0 14px}
+.lcols{display:block}.lside .card:first-child{margin-top:10px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:24px;font-size:14px;font-weight:600;z-index:40;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.skel{height:84px;border-radius:16px;margin:12px 0;background:linear-gradient(90deg,#EEE9DF 25%,#F6F3EC 50%,#EEE9DF 75%);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel{animation:none}}
+.cgrid3{display:grid;grid-template-columns:1fr;gap:0 16px}.ccard{padding:20px}.ccard .open{margin-top:14px;font-weight:700;color:var(--or);font-size:14px}.ccard:hover .open{text-decoration:underline}
+.lrow{display:flex;gap:16px;align-items:flex-start}.lthumb{flex:none;width:104px;aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#1E1E22;position:relative}
+.lthumb img,.lthumb iframe{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border:0}
+.lthumb button{position:absolute;inset:0;border:0;background:rgba(30,30,34,.18);cursor:pointer;display:flex;align-items:center;justify-content:center}.lthumb button span{width:44px;height:44px;border-radius:50%;background:var(--or);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;padding-left:3px}
+.lthumb.empty{background:#EEE9DF;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;font-weight:600;color:var(--mut);padding:8px}
+@media(min-width:700px){.lthumb{width:168px}}
+.trings{display:flex;gap:12px 14px;flex-wrap:wrap;margin:14px 0 10px}.trings>div{display:flex;align-items:center;gap:10px;flex:1 1 150px}.trings b{display:block;font-size:15px}.trings span{font-size:12px;color:var(--mut)}
+.tchk{display:flex;align-items:center;gap:8px;font-size:14px;margin:7px 0}.tchk>span:first-child{width:20px;height:20px;border-radius:50%;border:2px solid #CFC9BC;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex:none}.tchk>span.y{background:var(--gr);border-color:var(--gr);color:#fff}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.chead{padding:22px}.lcard{padding:18px}.ans{background:var(--grl);color:#0A6B52;font-size:13px;font-weight:600;padding:4px 10px;border-radius:10px}
+.qrow{border-top:1px solid #EEE9DF;padding-top:10px;margin-top:10px;font-size:14px}
+@media(min-width:700px){.cgrid3{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}}
+#side{display:none}
+@media(min-width:560px){h1{font-size:28px}.cgrid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
+@media(min-width:1000px){
+#shell{display:flex;min-height:100vh}
+#side:not([hidden]){display:flex;flex-direction:column;gap:4px;width:248px;flex:none;padding:24px 16px;background:#fff;border-right:1px solid var(--line);position:sticky;top:0;height:100vh}
+#side .brand{display:flex;align-items:center;gap:10px;padding:0 6px 22px}#side .brand img{border:1px solid var(--ink);border-radius:4px}
+#side .brand b{font-family:var(--hd);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#side nav{display:flex;flex-direction:column;gap:4px}
+#side nav button{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;border:0;background:none;color:#3A3A40;font-size:15px;font-weight:500;cursor:pointer;text-align:left}
+#side nav button:hover{background:#F6F3EC}#side nav button.on{background:var(--orl);color:#A83C0B;font-weight:600}
+#side .who{margin-top:auto;background:#F3F1EC;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px}
+#side .acct{display:flex;align-items:center;gap:10px}
+#side .av{width:40px;height:40px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:none;letter-spacing:.5px}
+#side .acct b{display:block;font-size:14px;color:var(--ink);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#side .out{color:var(--rd);min-height:44px;gap:8px;font-weight:600}
+#mainwrap{flex:1;min-width:0}
+body:not(.auth) header.top,body:not(.auth) .navseg{display:none}
+body:not(.auth) .wrap{max-width:1280px;margin:0;padding:22px 32px 64px}
+body.auth .wrap{max-width:1100px}
+.tiles{grid-template-columns:repeat(4,1fr);gap:16px}.tiles.t3{grid-template-columns:repeat(3,1fr)}
+.tile{padding:18px 20px}.tile .n{font-size:32px}.tile .l{font-size:13px}
+.stf{display:table;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh);border-spacing:0;border-collapse:separate;overflow:hidden}
+.stf thead{display:table-header-group}.stf tbody{display:table-row-group}
+.stf th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut);font-weight:600;padding:14px 12px}.stf th:first-child,.stf td:first-child{padding-left:20px}
+.stf tr{display:table-row;border:0;border-radius:0;box-shadow:none;margin:0;padding:0;background:none}.stf tbody tr:hover{background:#FBFAF6}
+.stf td{display:table-cell;padding:15px 12px;font-size:14px;color:var(--ink);border-top:1px solid #EEE9DF;vertical-align:middle}.stf td.nm{font-size:15px;white-space:nowrap}.stf td.pr{width:26%}
+.stf td[data-l]::before{content:none}.stf td.dim{color:var(--mut)}
+.sheet{align-items:center}.sheet .box{border-radius:20px;max-width:560px}
+.authcols{display:flex;gap:40px;align-items:center;max-width:1040px;margin:0 auto;min-height:92vh}.authcols .hero{flex:1 1 0;margin:0;padding:48px 40px}.authcols .hero h1{font-size:40px}.authform{flex:0 0 400px}
+.lcols{display:flex;gap:28px;align-items:flex-start}.lvid{flex:0 0 300px}.lvid .player{margin-top:0;max-width:300px}.lside{flex:1;min-width:0}.lside .card:first-child,.lside h2:first-child{margin-top:0}
+}
+</style>
+</head>
+<body>
+<div id="shell">
+<aside id="side" hidden></aside>
+<div id="mainwrap">
+<header class="top" id="top" hidden><div class="in"><img class="lg" src="logo.png" alt="BizSkill" width="46" height="32"><div class="grow"><div class="logo">BizSkill Training</div><div class="sub" id="topsub"></div></div><button class="btn sm" id="menuBtn">Menu</button></div></header>
+<main class="wrap" id="app"></main>
+</div>
+</div>
+<div id="sheets"></div>
+<script>
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let ME = null, VIEW = localStorage.getItem('bzview') || 'owner', beatTimer = null, loopTimer = null, player = null;
+async function api(a, body = {}) {
+  let r, j;
+  try { r = await fetch('api.php?a=' + a, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-App': '1'}, credentials: 'same-origin', body: JSON.stringify(body)}); j = await r.json(); }
+  catch (e) { throw new Error('Could not reach the server. Check your internet and try again.'); }
+  if (!r.ok) { const er = new Error(j.error || 'Something went wrong.'); er.code = r.status; throw er; }
+  return j;
+}
+const fmtDate = t => t ? new Date(t * 1000).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'}) : '';
+const ago = t => { if (!t) return 'Never'; const d = Math.floor(Date.now() / 1000) - t; if (d < 3600) return 'Just now'; if (d < 86400) return Math.floor(d / 3600) + ' h ago'; if (d < 86400 * 30) return Math.floor(d / 86400) + ' d ago'; return fmtDate(t); };
+const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+const wt = s => !s.seconds ? '0 min' : s.seconds < 60 ? 'under 1 min' : Math.round(s.seconds / 60) + ' min';
+const ring = (p, col) => `<svg class="ring" role="img" aria-label="${p} percent" width="56" height="56" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#EEE9DF" stroke-width="8"/>${p > 0 ? `<circle cx="32" cy="32" r="26" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(163.4 * Math.min(100, p) / 100).toFixed(1)} 163.4" transform="rotate(-90 32 32)"/>` : ''}</svg>`;
+const thumb = (id, title) => `<img src="https://i.ytimg.com/vi/${esc(id)}/hqdefault.jpg" alt="" loading="lazy"><button aria-label="Play ${esc(title || 'video')}"><span aria-hidden="true">▶</span></button>`;
+const EYE = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', EYEOFF = '<path d="M3 3l18 18M10.6 5.2A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.3 6.4C3.6 8.2 2 12 2 12s3.5 7 10 7c1.6 0 3-.4 4.3-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>';
+// Adds a show/hide eye button to every password box under root.
+function pwEyes(root = document) { root.querySelectorAll('input[type=password]:not([data-eye])').forEach(inp => { inp.dataset.eye = 1; const w = document.createElement('div'); w.className = 'pw'; inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'eye';
+  const set = () => { const shown = inp.type === 'text'; b.setAttribute('aria-label', shown ? 'Hide password' : 'Show password'); b.setAttribute('aria-pressed', shown ? 'true' : 'false'); b.innerHTML = `<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${shown ? EYEOFF : EYE}</svg>`; };
+  b.onclick = () => { inp.type = inp.type === 'password' ? 'text' : 'password'; set(); inp.focus(); }; set(); w.appendChild(b); }); }
+function toast(t) { document.querySelectorAll('.toast').forEach(x => x.remove()); const d = document.createElement('div'); d.className = 'toast'; d.setAttribute('role', 'status'); d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 1800); }
+const IC = {biz: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>', content: '<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M10 9l5 2.5-5 2.5z"/>', owner: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>', learn: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', profile: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/>'};
+function renderSide() { const r = ME.user.role, cur = r === 'admin' ? ATAB : r === 'owner' && VIEW !== 'learner' && !/^#\/(course|lesson)\//.test(location.hash) ? (VIEW === 'profile' ? 'profile' : 'owner') : 'learn';
+  const items = r === 'admin' ? [['biz', 'Businesses'], ['content', 'Courses'], ['owner', 'Owner View'], ['learn', 'Employee View']] : r === 'owner' ? [['owner', 'Dashboard'], ['learn', 'Employee View'], ['profile', 'Business Profile']] : [['learn', 'My Courses']];
+  const s = $('#side'); s.hidden = false;
+  s.innerHTML = `<div class="brand"><img src="logo.png" alt="" width="48" height="34"><b>BizSkill Training</b></div><nav aria-label="Main">${items.map(x => `<button data-n="${x[0]}" class="${cur === x[0] ? 'on' : ''}" ${cur === x[0] ? 'aria-current="page"' : ''}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[x[0]]}</svg>${x[1]}</button>`).join('')}</nav><div class="who"><div class="acct"><span class="av" aria-hidden="true">${esc(ME.user.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase())}</span><span class="grow"><b>${esc(ME.user.name)}</b><span class="tag ok">${r === 'admin' ? 'Admin' : r === 'owner' ? 'Owner' : 'Employee'}</span></span></div><button class="btn wide out" id="sideOut"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M10 12h10M16 8l4 4-4 4"/></svg>Log out</button></div>`;
+  s.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { if (r === 'admin') { ATAB = b.dataset.n; ACOURSE = 0; } else if (r === 'owner') { VIEW = b.dataset.n === 'learn' ? 'learner' : b.dataset.n; if (VIEW !== 'profile') localStorage.setItem('bzview', VIEW); } go('#/'); });
+  $('#sideOut').onclick = async () => { stopPlayer(); await api('logout'); ME = await api('me'); go('#/'); }; }
+function go(h) { if (location.hash === h) route(); else location.hash = h; }
+function stopPlayer() { clearInterval(beatTimer); beatTimer = null; clearInterval(loopTimer); loopTimer = null; try { player && player.destroy && player.destroy(); } catch (e) {} player = null; }
+
+// ---------- sheets (bottom panels) ----------
+function sheet(html, onReady) {
+  const d = document.createElement('div'); d.className = 'sheet'; d.innerHTML = '<div class="box">' + html + '</div>';
+  d.addEventListener('click', e => { if (e.target === d) d.remove(); });
+  $('#sheets').appendChild(d); pwEyes(d); onReady && onReady(d, () => d.remove()); return d;
+}
+function formSheet(title, fields, saveLabel, onSave, extra = '') {
+  const f = fields.map(x => x.type === 'select'
+    ? `<label>${esc(x.label)}</label><select name="${x.name}">${x.options.map(o => `<option value="${esc(o[0])}" ${String(o[0]) === String(x.value ?? '') ? 'selected' : ''}>${esc(o[1])}</option>`).join('')}</select>`
+    : x.type === 'check' ? `<label class="row" style="font-weight:500"><input type="checkbox" name="${x.name}" ${x.value ? 'checked' : ''} style="width:20px;height:20px"> ${esc(x.label)}</label>`
+    : `<label>${esc(x.label)}</label><input type="${x.type || 'text'}" name="${x.name}" value="${esc(x.value ?? '')}" ${x.attrs || ''}>${x.hint ? `<div class="mut sm">${esc(x.hint)}</div>` : ''}`).join('');
+  sheet(`<h2 style="margin-top:4px">${esc(title)}</h2><form>${f}<div class="msg"></div><div class="row" style="margin-top:16px"><button type="button" class="btn grow x">Cancel</button><button class="btn pri grow">${esc(saveLabel)}</button></div></form>${extra}`, (d, close) => {
+    $('.x', d).onclick = close;
+    $('form', d).onsubmit = async e => { e.preventDefault(); const v = {}; fields.forEach(x => { const el = $(`[name=${x.name}]`, d); v[x.name] = x.type === 'check' ? (el.checked ? 1 : 0) : el.value; });
+      const b = $('.btn.pri', d); b.disabled = true; try { await onSave(v, close, d); toast('Saved'); } catch (er) { $('.msg', d).innerHTML = `<div class="err">${esc(er.message)}</div>`; } b.disabled = false; };
+  });
+}
+
+// ---------- sign in / start free ----------
+function viewAuth(tab = 'login') {
+  $('#top').hidden = true; $('#side').hidden = true; document.body.classList.add('auth');
+  $('#app').innerHTML = `
+  <div class="authbox"><div class="authbrand"><img src="logo.png" alt="" width="72" height="50"><b>BizSkill Training</b></div><div class="seg"><button data-t="login" class="${tab === 'login' ? 'on' : ''}">Log in</button><button data-t="signup" class="${tab === 'signup' ? 'on' : ''}">Start free</button></div>
+  <form id="af" class="card">
+    ${tab === 'signup' ? `<p class="mut sm">For business owners. Free for ${ME.free_staff} employees with the starter course. No payment details needed.</p>
+      <label>Business name</label><input type="text" name="business" required maxlength="120" autocomplete="organization">
+      <label>Your name</label><input type="text" name="name" required maxlength="80" autocomplete="name">` : ''}
+    <label>Mobile number</label><input type="tel" name="mobile" required inputmode="numeric" autocomplete="tel" placeholder="10-digit number">
+    <label>Password</label><input type="password" name="password" required minlength="6" autocomplete="${tab === 'signup' ? 'new-password' : 'current-password'}">
+    ${tab === 'signup' ? '<div class="mut sm">At least 6 characters.</div>' : ''}
+    <div class="msg"></div>
+    <button class="btn pri wide" style="margin-top:16px">${tab === 'signup' ? 'Create my free account' : 'Log in'}</button>
+  </form></div>`;
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => viewAuth(b.dataset.t)); pwEyes();
+  $('#af').onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); const b = $('#af .btn'); b.disabled = true;
+    try { ME = await api(tab, v); go('#/'); } catch (er) { $('#af .msg').innerHTML = `<div class="err">${esc(er.message)}</div>`; b.disabled = false; } };
+}
+function viewSetup() {
+  $('#top').hidden = true; $('#side').hidden = true; document.body.classList.add('auth'); const k = new URLSearchParams(location.hash.split('?')[1] || '').get('k') || '';
+  $('#app').innerHTML = `<h1>First-time setup</h1><p class="mut">Create the admin login. This page works only once.</p><form id="sf" class="card">
+    <label>Your name</label><input type="text" name="name" required><label>Mobile number</label><input type="tel" name="mobile" required>
+    <label>Password</label><input type="password" name="password" required minlength="6"><div class="msg"></div><button class="btn pri wide" style="margin-top:16px">Create admin login</button></form>`;
+  pwEyes();
+  $('#sf').onsubmit = async e => { e.preventDefault(); const v = Object.fromEntries(new FormData(e.target)); v.key = k;
+    try { await api('setup', v); ME = await api('login', v); go('#/'); } catch (er) { $('#sf .msg').innerHTML = `<div class="err">${esc(er.message)}</div>`; } };
+}
+function topBar() {
+  $('#top').hidden = false; document.body.classList.remove('auth'); renderSide();
+  $('#topsub').textContent = ME.user.role === 'admin' ? 'Admin' : (ME.business ? ME.business.name + ' · ' : '') + ME.user.name;
+  $('#menuBtn').onclick = () => sheet(`<h2 style="margin-top:4px">${esc(ME.user.name)}</h2><p class="mut sm">${esc(ME.user.mobile)}</p>
+    ${ME.user.role === 'owner' ? '<button class="btn wide" id="mPf" style="margin-top:10px">Business Profile</button>' : ''}
+    <button class="btn wide" id="mPw" style="margin-top:10px">Change password</button>
+    ${ME.user.role !== 'admin' ? `<a class="btn wide" style="margin-top:10px" href="https://wa.me/${esc(ME.whatsapp)}" target="_blank" rel="noopener">Help on WhatsApp</a>` : ''}
+    <button class="btn wide danger" id="mOut" style="margin-top:10px">Log out</button>`, (d, close) => {
+      $('#mOut', d).onclick = async () => { stopPlayer(); await api('logout'); ME = await api('me'); close(); go('#/'); };
+      if ($('#mPf', d)) $('#mPf', d).onclick = () => { close(); VIEW = 'profile'; go('#/'); };
+      $('#mPw', d).onclick = () => { close(); formSheet('Change password', [{name: 'old', label: 'Current password', type: 'password'}, {name: 'password', label: 'New password', type: 'password', hint: 'At least 6 characters.'}], 'Save', async (v, c) => { await api('password', v); c(); }); };
+  });
+}
+function viewSwitch() {
+  if (ME.user.role !== 'owner') return '';
+  return `<div class="seg navseg"><button data-v="owner" class="${VIEW === 'owner' ? 'on' : ''}">Owner View</button><button data-v="learner" class="${VIEW === 'learner' ? 'on' : ''}">Employee View</button></div>`;
+}
+function bindSwitch() { document.querySelectorAll('.seg button[data-v]').forEach(b => b.onclick = () => { VIEW = b.dataset.v; localStorage.setItem('bzview', VIEW); go('#/'); }); }
+
+// ---------- owner ----------
+function viewProfile() {
+  topBar();
+  $('#app').innerHTML = viewSwitch() + `<div class="phead"><h1>Business Profile</h1></div>
+  <form class="card" id="pf" style="max-width:460px">
+    <label for="pfB">Business Name</label><input type="text" id="pfB" name="business" maxlength="120" required value="${esc(ME.business.name)}">
+    <label for="pfN">Your Name</label><input type="text" id="pfN" name="name" maxlength="80" required autocomplete="name" value="${esc(ME.user.name)}">
+    <label for="pfM">Mobile Number</label><input type="tel" id="pfM" name="mobile" inputmode="numeric" autocomplete="tel" required value="${esc(ME.user.mobile)}">
+    <div class="msg"></div><button class="btn pri" style="margin-top:16px">Save</button>
+  </form>`;
+  bindSwitch();
+  $('#pf').onsubmit = async e => { e.preventDefault(); const f = e.target, b = $('.btn.pri', f); b.disabled = true; $('.msg', f).innerHTML = '';
+    try { ME = await api('profile_save', {business: f.business.value, name: f.name.value, mobile: f.mobile.value}); toast('Saved'); viewProfile(); }
+    catch (er) { $('.msg', f).innerHTML = `<div class="err">${esc(er.message)}</div>`; b.disabled = false; } };
+}
+async function upgrade() {
+  if (ME.pay === 'auto') {
+    try {
+      if (!window.Razorpay) await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://checkout.razorpay.com/v1/checkout.js'; s.onload = ok; s.onerror = () => no(new Error('Payment window could not load.')); document.head.appendChild(s); });
+      const o = await api('order_create');
+      new Razorpay({key: o.key, amount: o.amount, currency: 'INR', order_id: o.order_id, name: ME.brand + ' Training', description: 'Yearly plan, up to ' + ME.paid_staff + ' employees', prefill: {name: o.name, contact: o.mobile}, theme: {color: '#e86826'},
+        handler: async r => { try { ME = await api('order_verify', {order_id: r.razorpay_order_id, payment_id: r.razorpay_payment_id, signature: r.razorpay_signature}); route(); }
+          catch (e) { sheet(`<div class="err">${esc(e.message)} If money was deducted, message us on WhatsApp and we will activate your plan.</div>`); } }}).open();
+    } catch (e) { sheet(`<div class="err">${esc(e.message)}</div>`); }
+    return;
+  }
+  const wa = `https://wa.me/${ME.whatsapp}?text=${encodeURIComponent('I want the BizSkill Training yearly plan. Business: ' + ME.business.name + ', mobile: ' + ME.user.mobile)}`;
+  sheet(`<h2 style="margin-top:4px">Yearly plan: ₹${ME.price.toLocaleString('en-IN')}</h2><p>All courses, up to ${ME.paid_staff} employees, new lessons every week.</p>
+    ${ME.pay === 'link' ? `<a class="btn pri wide" href="${esc(ME.pay_link)}" target="_blank" rel="noopener" style="margin-top:10px">Pay now</a><p class="mut sm">Pay with the same mobile number (${esc(ME.user.mobile)}). Your plan is switched on after we confirm the payment.</p>` : ''}
+    <a class="btn wide" href="${esc(wa)}" target="_blank" rel="noopener" style="margin-top:10px">Message us on WhatsApp</a>`);
+}
+async function viewOwner(adminBiz) {
+  topBar(); const ro = adminBiz !== undefined; let bizList = [];
+  if (ro) bizList = (await api('a_overview')).businesses;
+  if (ro && !bizList.some(b => String(b.id) === String(adminBiz))) { ABIZ = 0;   // no business chosen yet: list them
+    $('#app').innerHTML = adminSeg() + `<div class="phead"><h1>Owner View</h1></div>` + (bizList.length ? `<div class="cgrid3">${bizList.map(b => `<div class="card tap ccard" data-vo="${b.id}" tabindex="0" role="button" aria-label="Open ${esc(b.name)}"><h2 style="margin:0 0 4px;font-size:20px">${esc(b.name)}</h2><div class="mut sm">${esc(b.owner || '')}</div><div class="stats"><span><b>${b.staff}</b> ${b.staff == 1 ? 'employee' : 'employees'}</span><span><b>${b.completed}</b> lessons done</span></div><div class="row between" style="margin-top:10px"><div class="open" style="margin:0">Open dashboard <span aria-hidden="true">›</span></div><button class="btn sm danger" data-bdel="${b.id}">Delete</button></div></div>`).join('')}</div>`
+      : `<div class="card" style="max-width:420px"><b>No business has signed up yet</b><p class="mut sm">When one does, open it here to see its dashboard the way its owner does.</p></div>`);
+    bindAdminSeg(); document.querySelectorAll('[data-vo]').forEach(b => { b.onclick = () => { ABIZ = b.dataset.vo; viewOwner(ABIZ); }; b.onkeydown = e => { if (e.key === 'Enter' && e.target === b) b.onclick(); }; });
+    bindBizDel(() => viewOwner(0)); return; }
+  const d = !ro ? await api('dash') : await api('dash', {business_id: +adminBiz});
+  const act = d.staff.filter(s => s.active), tot = act.reduce((a, s) => a + s.total, 0), done = act.reduce((a, s) => a + s.done, 0);
+  const sc = act.filter(s => s.avg !== null), avg = sc.length ? Math.round(sc.reduce((a, s) => a + s.avg, 0) / sc.length) : null;
+  const over = act.filter(s => s.overdue).length, nowS = Date.now() / 1000;
+  const stTag = s => !s.active ? '<span class="tag">Former</span>' : s.overdue ? '<span class="tag bad">Overdue</span>' : s.total && s.done === s.total ? '<span class="tag ok">Completed</span>' : !s.total ? '<span class="tag">Nothing assigned</span>' : s.done || s.seconds ? '<span class="tag or">In progress</span>' : '<span class="tag">Not started</span>';
+  const attn = [];
+  act.forEach(s => { s.courses.filter(c => c.late).forEach(c => attn.push(['bad', `<b>${esc(s.name)}</b> is past the finish date for ${esc(c.title)}.`]));
+    if (!s.total) attn.push(['', `<b>${esc(s.name)}</b> has no course assigned.`]);
+    else if (!s.last_active) attn.push(['', `<b>${esc(s.name)}</b> has not logged in yet.`]);
+    else if (s.done < s.total && !s.overdue && nowS - s.last_active > 7 * 86400) attn.push(['', `<b>${esc(s.name)}</b> has not been active for ${Math.floor((nowS - s.last_active) / 86400)} days.`]); });
+  const top = ro ? adminSeg() + `<button class="link" id="vbBack">‹ All businesses</button>` : viewSwitch();
+  $('#app').innerHTML = top + `<div class="phead"><div>${ro ? `<h1>Owner View</h1><div class="mut" style="font-weight:600">${esc(d.business || '')}</div>` : `<h1>${esc(d.business || (ME.business ? ME.business.name : ''))}</h1>`}${!ro && d.paid ? `<div class="mut sm">Yearly plan active until ${fmtDate(d.paid_until)}</div>` : ''}</div>${ro ? '' : '<button class="btn pri" id="addE">Add employee</button>'}</div>` +
+  `<div class="tiles"><div class="tile"><div><div class="n">${act.length}<span> / ${d.limit}</span></div><div class="l">Employees</div></div></div>
+    <div class="tile"><div><div class="n">${done}<span> / ${tot}</span></div><div class="l">Lessons completed</div></div>${ring(pct(done, tot), 'var(--or)')}</div>
+    <div class="tile"><div><div class="n">${avg === null ? '–' : avg + '%'}</div><div class="l">Average test score</div></div>${ring(avg || 0, 'var(--gr)')}</div>
+    <div class="tile"><div><div class="n" style="${over ? 'color:var(--rd)' : ''}">${over}</div><div class="l">Overdue</div></div></div></div>
+  <div class="cols"><section class="colmain"><h2>${ro ? 'Employees' : 'Your Employees'}</h2>
+  ${d.staff.length ? `<table class="stf"><thead><tr><th>Employee</th><th>Status</th><th>Progress</th><th>Score</th><th>Watched</th><th>Last active</th></tr></thead><tbody>${d.staff.map(s => `<tr data-e="${s.id}" tabindex="0" class="${s.active ? '' : 'off'}">
+      <td class="nm"><b>${esc(s.name)}</b></td><td>${stTag(s)}</td>
+      <td class="pr"><div class="row"><div class="bar grow ${s.overdue ? 'bad' : s.total && s.done === s.total ? 'ok' : ''}"><i style="width:${pct(s.done, s.total)}%"></i></div><b>${s.done}/${s.total}</b></div></td>
+      <td data-l="Score"><b>${s.avg === null ? '–' : s.avg + '%'}</b></td><td data-l="Watched"><b>${wt(s)}</b></td><td data-l="Active" class="dim"><b>${ago(s.last_active)}</b></td></tr>`).join('')}</tbody></table>`
+    : ro ? '<p class="mut">No employees added yet.</p>' : `<div class="card"><b>Start in three steps</b><p class="sm mut">1. Open Employee View to see what your employees will see.<br>2. Add your first employee.<br>3. Assign a course and watch the scores arrive here.</p></div>`}
+  </section><aside class="colside">
+  ${attn.length ? `<h2>Needs attention</h2><div class="card" style="padding-top:8px">${attn.slice(0, 6).map(a => `<div class="attn"><i class="${a[0]}"></i><div>${a[1]}</div></div>`).join('')}</div>` : ''}
+  <h2>Courses</h2>
+  ${d.courses.map(c => `<div class="card"><div class="row between"><div class="grow"><b>${esc(c.title)}</b><div class="mut sm">${esc(c.descr)}</div><div class="mut sm">${c.lessons} lesson${c.lessons == 1 ? '' : 's'}</div></div>${ro ? '' : `<button class="btn sm" data-all="${c.id}">Assign to all</button>`}</div></div>`).join('') || '<p class="mut">No courses published yet.</p>'}
+  ${d.locked.map(c => `<div class="card" style="opacity:.75"><div class="row between"><div class="grow"><b>${esc(c.title)}</b><div class="mut sm">${esc(c.descr)}</div><div class="mut sm">${c.lessons} lesson${c.lessons == 1 ? '' : 's'}</div></div>${ro ? '<span class="tag">Locked</span>' : '<button class="btn sm" data-up="1">Locked · Upgrade</button>'}</div></div>`).join('')}
+  </aside></div>`;
+  const openStaff = id => staffSheet(d.staff.find(x => x.id == id), d, ro);
+  document.querySelectorAll('[data-e]').forEach(el => { el.onclick = () => openStaff(el.dataset.e); el.onkeydown = e => { if (e.key === 'Enter') openStaff(el.dataset.e); }; });
+  if (ro) { bindAdminSeg(); if ($('#vbBack')) $('#vbBack').onclick = () => { ABIZ = 0; viewOwner(ABIZ); }; return; }
+  bindSwitch();
+  document.querySelectorAll('#up1,[data-up]').forEach(b => b.onclick = upgrade);
+  $('#addE').onclick = () => formSheet('Add employee', [{name: 'name', label: 'Employee name'}, {name: 'mobile', label: 'Mobile number', type: 'tel', attrs: 'inputmode="numeric"'}, {name: 'password', label: 'Password for the employee', hint: 'At least 6 characters. You will share this with them.'}], 'Add', async (v, close) => {
+    await api('staff_add', v); close(); const txt = `${ME.business.name} has added you to BizSkill Training.\nOpen: ${location.origin + location.pathname}\nMobile: ${v.mobile}\nPassword: ${v.password}`;
+    sheet(`<div class="okm">${esc(v.name)} is added.</div><p class="sm">Share the login with ${esc(v.name)}:</p><div class="card sm" style="white-space:pre-wrap">${esc(txt)}</div><a class="btn pri wide" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt)}">Send on WhatsApp</a><p class="sm mut" style="margin-top:10px">Next: tap their name and assign a course.</p>`);
+    viewOwner(); },
+    d.paid ? '' : `<p class="mut sm" style="margin-top:14px">Free plan: ${ME.free_staff} employees.</p>`);
+  document.querySelectorAll('[data-all]').forEach(b => b.onclick = () => { const c = d.courses.find(x => x.id == b.dataset.all);
+    formSheet('Assign "' + c.title + '" to all employees', [{name: 'due', label: 'Finish by (optional)', type: 'date'}], 'Assign', async (v, close) => { const r = await api('assign', {course_id: c.id, due: v.due}); close(); if (!r.count) sheet('<p>Add an employee first.</p>'); viewOwner(); }); });
+}
+function staffSheet(s, d, ro) {
+  const free = d.courses.filter(c => !s.courses.some(x => x.course_id === c.id));
+  sheet(`<div class="row between"><h2 style="margin:4px 0">${esc(s.name)}</h2><button class="btn sm x">Close</button></div><p class="mut sm">${esc(s.mobile)} · Last active: ${ago(s.last_active)} · ${wt(s)} watched</p>
+    ${s.courses.map(c => `<div class="card"><div class="row between"><b>${esc(c.title)}</b>${c.late ? '<span class="tag bad">Overdue</span>' : c.done === c.total && c.total ? '<span class="tag ok">Completed</span>' : ''}</div>
+      <div class="bar ${c.done === c.total && c.total ? 'ok' : ''}" style="margin-top:8px"><i style="width:${pct(c.done, c.total)}%"></i></div>
+      <div class="stats"><span><b>${c.done}/${c.total}</b> lessons</span><span>Score <b>${c.avg === null ? '–' : c.avg + '%'}</b></span>${c.due ? `<span>Due <b>${fmtDate(c.due)}</b></span>` : ''}${ro ? '' : `<button class="link sm" data-un="${c.course_id}">Remove course</button>`}</div></div>`).join('') || '<p class="mut">No course assigned yet.</p>'}
+    ${!ro && s.active && free.length ? `<div class="card"><b>Assign a course</b><label>Course</label><select id="aC">${free.map(c => `<option value="${c.id}">${esc(c.title)}</option>`).join('')}</select><label>Finish by (optional)</label><input type="date" id="aD"><button class="btn pri wide" id="aGo" style="margin-top:12px">Assign</button></div>` : ''}
+    <div class="msg"></div>
+    ${ro ? '' : s.active ? `<div class="two" style="margin-top:8px"><button class="btn" id="rPw">Reset password</button><button class="btn danger" id="rm">Remove employee</button></div><p class="mut sm">Removing frees the place for a new joiner. Their scores stay visible to you.</p>` : '<p class="mut sm">This person has been removed and can no longer log in.</p>'}`, (el, close) => {
+    const err = e => $('.msg', el).innerHTML = `<div class="err">${esc(e.message)}</div>`;
+    $('.x', el).onclick = close;
+    el.querySelectorAll('[data-un]').forEach(b => b.onclick = async () => { try { await api('unassign', {user_id: s.id, course_id: +b.dataset.un}); close(); viewOwner(); } catch (e) { err(e); } });
+    if ($('#aGo', el)) $('#aGo', el).onclick = async () => { try { await api('assign', {user_id: s.id, course_id: +$('#aC', el).value, due: $('#aD', el).value}); close(); viewOwner(); } catch (e) { err(e); } };
+    if ($('#rPw', el)) $('#rPw', el).onclick = () => { close(); formSheet('New password for ' + s.name, [{name: 'password', label: 'New password', hint: 'At least 6 characters.'}], 'Save', async (v, c) => { await api('staff_reset', {id: s.id, password: v.password}); c(); }); };
+    if ($('#rm', el)) $('#rm', el).onclick = function () { if (this.dataset.sure) { api('staff_remove', {id: s.id}).then(() => { close(); viewOwner(); }).catch(err); } else { this.dataset.sure = 1; this.textContent = 'Tap again to remove'; } };
+  });
+}
+
+// ---------- learner ----------
+const previewNote = () => '';
+async function viewLearn() {
+  topBar(); const d = await api('my_courses');
+  $('#app').innerHTML = (ME.user.role === 'admin' ? adminSeg() : viewSwitch()) + previewNote() + `<div class="phead"><h1>${ME.user.role !== 'employee' ? 'Employee View' : 'My Courses'}</h1></div>
+    ${d.total ? `<div class="tiles t3"><div class="tile"><div><div class="n">${d.done}<span> / ${d.total}</span></div><div class="l">Lessons completed</div></div></div><div class="tile"><div><div class="n">${d.avg === null ? '–' : d.avg + '%'}</div><div class="l">My average score</div></div></div><div class="tile"><div><div class="n" style="font-size:20px">${wt(d)}</div><div class="l">Time watched</div></div></div></div>` : ''}
+    <div class="cgrid">${d.courses.map(c => `<div class="card tap" data-c="${c.id}"><div class="row between"><b>${esc(c.title)}</b>${c.total && c.done === c.total ? '<span class="tag ok">Completed</span>' : c.due && c.due * 1000 < Date.now() ? '<span class="tag bad">Overdue</span>' : ''}</div><div class="mut sm">${esc(c.descr)}</div>
+      <div class="bar ${c.total && c.done === c.total ? 'ok' : ''}" style="margin-top:10px"><i style="width:${pct(c.done, c.total)}%"></i></div><div class="stats"><span><b>${c.done}/${c.total}</b> lessons</span><span>Score <b>${c.avg === null ? '–' : c.avg + '%'}</b></span>${c.due ? `<span>Finish by <b>${fmtDate(c.due)}</b></span>` : ''}</div></div>`).join('')
+      || '<div class="card"><b>No course assigned yet</b><p class="mut sm">Your employer will assign your first course. Check back soon.</p></div>'}</div>`;
+  bindSwitch(); if (ME.user.role === 'admin') bindAdminSeg(); document.querySelectorAll('[data-c]').forEach(el => el.onclick = () => go('#/course/' + el.dataset.c));
+}
+async function viewCourse(id) {
+  topBar(); const c = await api('course', {id});
+  $('#app').innerHTML = previewNote() + `<button class="link" id="back">‹ All courses</button><h1>${esc(c.title)}</h1><p class="mut">${esc(c.descr)}</p>
+    ${c.lessons.map((l, i) => `<div class="card ${l.open ? 'tap' : ''}" data-l="${l.open ? l.id : ''}" ${l.open ? '' : 'style="opacity:.55"'}><div class="lesson"><div class="num ${l.done ? 'done' : l.open ? 'open' : ''}">${l.done ? '✓' : i + 1}</div>
+      <div class="grow"><b>${esc(l.title)}</b><div class="mut sm">${l.done ? 'Completed' + (l.score !== null ? ' · Test ' + l.score + '%' : '') : !l.open ? 'Locked: finish the lesson above' : l.completed ? 'Watched · Take the test' : l.has_video ? 'Tap to watch' : 'Video coming soon'}${ME.user.role === 'admin' ? ' · ' + l.watched + ' s tracked' : ''}</div></div></div></div>`).join('') || '<p class="mut">Lessons are being added.</p>'}`;
+  $('#back').onclick = () => go('#/'); document.querySelectorAll('[data-l]').forEach(el => { if (el.dataset.l) el.onclick = () => go('#/lesson/' + el.dataset.l); });
+}
+function loadYT() { return new Promise((ok, no) => { if (window.YT && YT.Player) return ok(); const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { prev && prev(); ok(); };
+  if (!$('#ytapi')) { const s = document.createElement('script'); s.id = 'ytapi'; s.src = 'https://www.youtube.com/iframe_api'; s.onerror = () => no(new Error('The video player could not load. Check your internet.')); document.head.appendChild(s); } setTimeout(() => no(new Error('The video player is taking too long to load.')), 15000); }); }
+async function viewLesson(id) {
+  topBar(); stopPlayer(); const l = await api('lesson', {id});
+  $('#app').innerHTML = previewNote() + `<button class="link" id="back">‹ Back to course</button><h1 style="font-size:22px">${esc(l.title)}</h1>
+    <div class="lcols"><div class="lvid">${l.yt ? `<div class="player" id="pl"><div id="yt"></div><button class="cover" id="cover" aria-label="Play or pause"><span>▶</span></button></div><div class="pbar"><i id="pb"></i></div><div class="mut sm" id="pst">${l.completed ? 'Watched. You can watch again any time.' : 'Watch the full video to open the test. Skipping ahead is switched off.'}</div>${ME.user.role === 'admin' ? '<div class="card" id="trk"></div>' : ''}` : '<div class="card"><b>Video coming soon</b><p class="mut sm">This lesson has no video yet.</p></div>'}</div>
+    <div class="lside">${!l.completed && l.nq ? '<div class="card" id="qwait"><b>Quick test</b><p class="mut sm">Opens when you finish the video. You need ' + ME.pass_mark + '% to move to the next lesson.</p></div>' : ''}<div id="quiz"></div><div class="card" id="incourse" hidden></div></div></div>`;
+  api('course', {id: l.course_id}).then(c => { const el = $('#incourse'); if (!el) return; el.hidden = false; el.innerHTML = `<b>In this course</b>` + c.lessons.map((x, i) => `<div class="lesson" style="margin-top:12px;opacity:${x.open ? 1 : .55}"><div class="num ${x.done ? 'done' : x.id === l.id ? 'open' : ''}">${x.done ? '✓' : i + 1}</div><div class="grow"><div style="font-weight:600;font-size:14px">${esc(x.title)}</div><div class="mut sm">${x.done ? 'Completed' + (x.score !== null ? ' · Test ' + x.score + '%' : '') : x.id === l.id ? 'This lesson' : x.open ? 'Open' : 'Opens after the lesson above'}</div></div></div>`).join(''); }).catch(() => {});
+  $('#back').onclick = () => go('#/course/' + l.course_id);
+  const TR = {watched: l.watched, maxpos: l.maxpos, dur: l.duration, completed: l.completed, score: l.score, attempts: l.attempts, last: null, note: ''};
+  const drawTrack = () => { const el = $('#trk'); if (!el) return; const D = TR.dur || 0;
+    const st = l.passed ? ['ok', 'Passed'] : TR.completed ? ['ok', 'Watched in full'] : TR.watched > 0 ? ['or', 'Watching'] : ['', 'Not started'];
+    el.innerHTML = `<div class="row between"><b>Tracking (Admin)</b><span class="tag ${st[0]}">${st[1]}</span></div>
+      <div class="trings"><div>${ring(D ? pct(TR.watched, D) : 0, 'var(--or)')}<div><b>${TR.watched} of ${D || '–'} s</b><span>Watched</span></div></div>
+        <div>${ring(TR.score ?? 0, 'var(--gr)')}<div><b>${TR.score === null ? 'Not taken' : TR.score + '%'}</b><span>Test${TR.attempts ? ' · ' + TR.attempts + ' attempt' + (TR.attempts == 1 ? '' : 's') : ''}</span></div></div></div>
+      <button class="link sm" id="trkReset">Reset my progress</button>`;
+    $('#trkReset').onclick = () => api('my_reset', {lesson_id: l.id}).then(() => { toast('Progress reset'); viewLesson(l.id); }); };
+  drawTrack();
+  const showQuiz = qs => { const qw = $('#qwait'); if (qw) qw.remove();
+    if (!l.nq) { $('#quiz').innerHTML = `<div class="okm">Lesson completed.</div>${l.next ? `<button class="btn pri wide" id="nx">Next lesson</button>` : `<button class="btn pri wide" id="nx">Back to course</button>`}`; $('#nx').onclick = () => go(l.next ? '#/lesson/' + l.next : '#/course/' + l.course_id); return; }
+    $('#quiz').innerHTML = `<h2>Quick test</h2>${l.passed ? `<div class="okm">Passed. Your best score: ${l.score}%.</div>` : ''}<form id="qf">${qs.map((q, i) => `<div class="card" data-q="${q.id}"><b>${i + 1}. ${esc(q.q)}</b>${['a', 'b', 'c', 'd'].map((k, n) => q[k] ? `<label class="opt" style="font-weight:400;font-size:15px"><input type="radio" name="q${q.id}" value="${n}" required><span>${esc(q[k])}</span></label>` : '').join('')}</div>`).join('')}<div class="msg"></div><button class="btn pri wide">Submit answers</button></form>`;
+    $('#qf').onsubmit = async e => { e.preventDefault(); const ans = {}; qs.forEach(q => { const c = $(`[name=q${q.id}]:checked`); if (c) ans[q.id] = +c.value; });
+      try { const r = await api('quiz', {lesson_id: l.id, answers: ans});
+        qs.forEach(q => document.querySelectorAll(`[data-q="${q.id}"] .opt`).forEach(o => { const v = +$('input', o).value; $('input', o).disabled = true; if (v === r.key[q.id]) o.classList.add('right'); else if (v === ans[q.id]) o.classList.add('wrong'); }));
+        $('#qf .btn').remove(); l.passed = l.passed || r.passed; TR.score = Math.max(TR.score ?? 0, r.score); TR.attempts++; drawTrack();
+        $('#qf .msg').innerHTML = `<div class="${r.passed ? 'okm' : 'err'}">You scored ${r.score}% (${r.right} of ${r.total}). ${r.passed ? 'Well done.' : 'You need ' + ME.pass_mark + '% to pass. Watch again if needed, then retry.'}</div>
+          ${r.passed || l.passed ? `<button type="button" class="btn pri wide" id="nx">${l.next ? 'Next lesson' : 'Back to course'}</button>` : `<button type="button" class="btn wide" id="rt">Try the test again</button>`}`;
+        if ($('#nx')) $('#nx').onclick = () => go(l.next ? '#/lesson/' + l.next : '#/course/' + l.course_id); if ($('#rt')) $('#rt').onclick = () => showQuiz(qs);
+      } catch (er) { $('#qf .msg').innerHTML = `<div class="err">${esc(er.message)}</div>`; } };
+  };
+  if (l.completed) showQuiz(l.questions);
+  if (!l.yt) return;
+  try { await loadYT(); } catch (e) { $('#pst').innerHTML = `<span style="color:var(--rd)">${esc(e.message)}</span>`; return; }
+  let done = l.completed, busy = false, userPlay = false, lastCur = 0;   // userPlay: the video runs only after the viewer taps play
+  const beat = async endPos => { if (busy || !player || !player.getCurrentTime) return; busy = true;
+    try { const r = await api('beat', {lesson_id: l.id, pos: Math.floor(endPos ?? player.getCurrentTime()), dur: Math.floor(player.getDuration() || 0)});
+      if (r.seek_to !== undefined) { player.seekTo(r.seek_to, true); $('#pst').textContent = 'Skipping ahead is switched off. Please watch from where you left.'; }
+      const D = player.getDuration() || 1; $('#pb').style.width = Math.min(100, 100 * r.maxpos / D) + '%';
+      const pw = TR.watched; Object.assign(TR, {watched: r.watched, maxpos: r.maxpos, completed: r.completed, dur: Math.floor(player.getDuration() || TR.dur || 0), last: Date.now(), note: r.seek_to !== undefined ? 'skip blocked, sent back to ' + r.seek_to + ' s' : '+' + (r.watched - pw) + ' s counted'}); drawTrack();
+      if (r.completed && !done) { done = true; l.completed = true; $('#pst').textContent = 'Watched. Now take the quick test below.'; showQuiz(r.questions || []); $('#quiz').scrollIntoView({behavior: 'smooth'}); }
+    } catch (e) { if (e.code === 401) { stopPlayer(); go('#/'); } } busy = false; };
+  // YouTube restarts a short video by itself when it ends, without ever reporting that it ended: the position simply jumps from the end back to 0.
+  // atLoop spots that jump, and stopAtEnd records the end, then keeps the video stopped until the viewer taps play.
+  const atLoop = () => { const cur = player.getCurrentTime(), D = player.getDuration() || 0; return userPlay && D > 0 && lastCur > D - 3 && cur < 2; };
+  const stopAtEnd = () => { const D = player.getDuration() || 0; userPlay = false; lastCur = 0; beat(D); try { player.pauseVideo(); } catch (x) {} $('#pst').textContent = done || l.completed ? 'Video finished. Tap the video to watch again.' : $('#pst').textContent; };
+  player = new YT.Player('yt', {videoId: l.yt, playerVars: {controls: 0, disablekb: 1, rel: 0, playsinline: 1, modestbranding: 1, fs: 0, iv_load_policy: 3},
+    events: { onReady: e => { const D = e.target.getDuration() || 1; $('#pb').style.width = Math.min(100, 100 * l.maxpos / D) + '%'; if (!l.completed && l.maxpos > 3) e.target.seekTo(l.maxpos, true); },
+      onStateChange: e => {
+        // Never start by itself: not on opening the lesson, not after a seek, and not when YouTube restarts a Short at the end.
+        if ((e.data === 1 || e.data === 3) && atLoop()) { stopAtEnd(); $('#cover').classList.remove('playing'); clearInterval(beatTimer); beatTimer = null; return; }
+        if (e.data === 1 && !userPlay) { try { player.pauseVideo(); } catch (x) {} return; }
+        if (e.data === 0) { clearInterval(beatTimer); beatTimer = null; $('#cover').classList.remove('playing'); stopAtEnd(); return; }
+        const playing = e.data === 1; $('#cover').classList.toggle('playing', playing); clearInterval(beatTimer); beatTimer = null;
+        if (playing) { beat(); beatTimer = setInterval(() => { if (!document.hidden) beat(); }, 5000); }
+        else if (e.data === 0 || e.data === 2) beat(); },
+      onError: () => { $('#pst').innerHTML = '<span style="color:var(--rd)">This video is not available right now.</span>'; } }});
+  clearInterval(loopTimer); loopTimer = setInterval(() => { if (!player || !player.getCurrentTime) return; if (atLoop()) { stopAtEnd(); $('#cover').classList.remove('playing'); clearInterval(beatTimer); beatTimer = null; } else if (userPlay) lastCur = player.getCurrentTime(); }, 200);
+  $('#cover').onclick = () => { if (!player || !player.getPlayerState) return; if (player.getPlayerState() === 1) { userPlay = false; player.pauseVideo(); } else { userPlay = true;
+    // Carry on from where the viewer had reached, so an unfinished lesson is never replayed from the start.
+    if (!done && TR.maxpos > 3 && player.getCurrentTime() < TR.maxpos - 2) player.seekTo(TR.maxpos, true);
+    player.playVideo(); } };
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && player && player.pauseVideo) try { player.pauseVideo(); } catch (e) {} });
+
+// ---------- admin ----------
+let ATAB = 'biz', ABIZ = 0, ACOURSE = 0;
+function adminSeg() { const t = [['biz', 'Businesses'], ['content', 'Courses'], ['owner', 'Owner View'], ['learn', 'Employee View']]; return `<div class="seg four navseg">${t.map(x => `<button data-a="${x[0]}" class="${ATAB === x[0] ? 'on' : ''}">${x[1]}</button>`).join('')}</div>`; }
+function bindAdminSeg() { document.querySelectorAll('.seg button[data-a]').forEach(b => b.onclick = () => { ATAB = b.dataset.a; ACOURSE = 0; go('#/'); }); }
+function bindBizDel(after) {
+  document.querySelectorAll('[data-bdel]').forEach(b => b.onclick = async function (ev) { ev.stopPropagation();
+    if (!this.dataset.sure) { this.dataset.sure = 1; this.textContent = 'Tap again to delete'; setTimeout(() => { if (this.isConnected) { delete this.dataset.sure; this.textContent = 'Delete'; } }, 4000); return; }
+    this.disabled = true; try { await api('a_biz_delete', {business_id: +this.dataset.bdel}); if (String(ABIZ) === this.dataset.bdel) ABIZ = 0; toast('Business deleted'); after(); } catch (e) { this.disabled = false; toast(e.message); } });
+}
+async function viewAdmin() {
+  topBar(); if (ATAB === 'owner') return viewOwner(ABIZ); if (ATAB === 'learn') return viewLearn();
+  const seg = adminSeg();
+  if (ATAB === 'biz') {
+    const d = await api('a_overview'); const paid = d.businesses.filter(b => b.plan === 'paid' && b.paid_until > d.now).length;
+    $('#app').innerHTML = seg + `<div class="phead"><h1>Businesses</h1></div><div class="tiles t3"><div class="tile"><div><div class="n">${d.businesses.length}</div><div class="l">Businesses</div></div></div><div class="tile"><div><div class="n">${paid}</div><div class="l">On yearly plan</div></div></div><div class="tile"><div><div class="n">${d.businesses.reduce((a, b) => a + +b.staff, 0)}</div><div class="l">Employees</div></div></div></div>
+      <div class="cgrid" style="margin-top:8px">${d.businesses.map(b => { const on = b.plan === 'paid' && b.paid_until > d.now; return `<div class="card"><div class="row between"><b>${esc(b.name)}</b><span class="tag ${on ? 'ok' : ''}">${on ? 'Paid until ' + fmtDate(b.paid_until) : 'Free'}</span></div>
+        <div class="stats"><span>${esc(b.owner)} · ${esc(b.mobile)}</span><span><b>${b.staff}</b> ${b.staff == 1 ? 'employee' : 'employees'}</span><span><b>${b.completed}</b> lessons done</span><span>Joined ${fmtDate(b.created)}</span></div>
+        <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn sm" data-vo="${b.id}">View as owner</button><button class="btn sm" data-plan="${b.id}" data-days="365">${on ? 'Add 1 year' : 'Activate 1 year'}</button>${on ? `<button class="btn sm danger" data-plan="${b.id}" data-days="0">Set to free</button>` : ''}<button class="btn sm danger" data-bdel="${b.id}">Delete</button></div></div>`; }).join('') || '<div class="card"><b>No business has signed up yet</b></div>'}</div>`;
+    document.querySelectorAll('[data-vo]').forEach(b => b.onclick = () => { ABIZ = b.dataset.vo; ATAB = 'owner'; go('#/'); });
+    bindBizDel(viewAdmin);
+    document.querySelectorAll('[data-plan]').forEach(b => b.onclick = function () { if (!this.dataset.sure) { this.dataset.sure = 1; this.textContent = 'Tap again to confirm'; return; } api('a_plan', {business_id: +this.dataset.plan, days: +this.dataset.days}).then(viewAdmin); });
+  } else {
+    const d = await api('a_courses');
+    const sel = d.courses.find(c => c.id == ACOURSE);
+    const tags = c => `<span class="tag ${+c.is_free ? 'or' : ''}">${+c.is_free ? 'Free' : 'Paid'}</span> <span class="tag ${+c.published ? 'ok' : 'bad'}">${+c.published ? 'Live' : 'Hidden'}</span>`;
+    if (!sel) {
+      const nl = d.courses.reduce((a, c) => a + c.lessons.length, 0), nv = d.courses.reduce((a, c) => a + c.lessons.filter(l => l.yt).length, 0);
+      $('#app').innerHTML = seg + `<div class="phead"><h1>Courses</h1><button class="btn pri" id="nc">New course</button></div>
+        <div class="cgrid3">${d.courses.map(c => { const n = c.lessons.length, v = c.lessons.filter(l => l.yt).length; return `<div class="card tap ccard" data-sc="${c.id}" tabindex="0" role="button" aria-label="Open ${esc(c.title)}">
+          <div class="row between"><span>${tags(c)}</span><span class="mut sm">Course ${+c.sort || ''}</span></div>
+          <h2 style="margin:14px 0 4px;font-size:20px">${esc(c.title)}</h2><div class="mut sm" style="min-height:38px">${esc(c.descr)}</div>
+          <div class="bar ${n && v === n ? 'ok' : ''}" style="margin-top:14px"><i style="width:${pct(v, n)}%"></i></div>
+          <div class="stats"><span><b>${n}</b> lesson${n == 1 ? '' : 's'}</span><span><b>${v}</b> with video</span></div>
+          <div class="open">Open course <span aria-hidden="true">›</span></div></div>`; }).join('') || '<div class="card"><b>No courses yet</b><p class="mut sm">Tap New course to create your first one.</p></div>'}</div>`;
+    } else {
+      const c = sel, v = c.lessons.filter(l => l.yt).length, nq = c.lessons.reduce((a, l) => a + l.questions.length, 0);
+      $('#app').innerHTML = seg + `<button class="link" id="backc">‹ All courses</button>
+        <div class="card chead"><div class="row between" style="align-items:flex-start;flex-wrap:wrap"><div class="grow"><h1 style="margin:0 0 4px">${esc(c.title)}</h1><div class="mut">${esc(c.descr)}</div></div><span>${tags(c)}</span></div>
+          <div class="stats" style="margin-top:12px;font-size:14px"><span><b>${c.lessons.length}</b> lesson${c.lessons.length == 1 ? '' : 's'}</span><span><b>${v}</b> with video</span><span><b>${nq}</b> test questions</span><span>${+c.is_free ? 'Open on the free plan' : 'Yearly plan only'}</span></div>
+          <div class="row" style="margin-top:16px;flex-wrap:wrap"><button class="btn sm pri" data-nl="${c.id}">Add lesson</button><button class="btn sm" data-ec="${c.id}">Edit course</button><button class="btn sm danger" data-del="course:${c.id}">Delete course</button></div></div>
+        <h2>Lessons</h2>
+        ${c.lessons.map((l, i) => `<div class="card lcard"><div class="lrow">${l.yt ? `<div class="lthumb" data-yt="${esc(l.yt)}">${thumb(l.yt, l.title)}</div>` : '<div class="lthumb empty">No video yet</div>'}<div class="lesson grow" style="align-items:flex-start"><div class="num ${l.yt ? 'done' : ''}">${i + 1}</div><div class="grow">
+          <div class="row between" style="align-items:flex-start"><b style="font-size:16px">${esc(l.title)}</b><span class="tag ${l.yt ? 'ok' : 'bad'}">${l.yt ? 'Video set' : 'No video'}</span></div>
+          <div class="mut sm">${l.yt ? 'YouTube ID ' + esc(l.yt) + (+l.duration ? ' · ' + l.duration + ' s' : ' · length is read on first play') : 'Paste the unlisted YouTube link with Edit lesson.'} · ${l.questions.length} question${l.questions.length == 1 ? '' : 's'}</div>
+          ${l.questions.map((q, k) => `<div class="qrow"><div><b>Q${k + 1}.</b> ${esc(q.q)}</div><div class="row" style="flex-wrap:wrap;margin-top:4px"><span class="ans">${esc([q.a, q.b, q.c, q.d][q.correct])}</span><button class="link sm" data-eq="${q.id}" data-lid="${l.id}">Edit</button><button class="link sm" data-del="question:${q.id}">Delete</button></div></div>`).join('')}
+          <div class="row" style="margin-top:14px;flex-wrap:wrap">${l.yt ? `<button class="btn sm pri" data-pv="${l.id}">Preview</button>` : ''}<button class="btn sm" data-el="${l.id}">Edit lesson</button><button class="btn sm" data-nq="${l.id}">Add question</button><button class="btn sm danger" data-del="lesson:${l.id}">Delete</button></div>
+        </div></div></div></div>`).join('') || '<div class="card"><b>No lessons yet</b><p class="mut sm">Tap Add lesson, give it a title, and paste the unlisted YouTube link.</p></div>'}`;
+      $('#backc').onclick = () => { ACOURSE = 0; viewAdmin(); };
+      // Small video on the left of each lesson: a still picture until tapped, then it plays in place. Only one plays at a time.
+      const bindThumbs = () => document.querySelectorAll('.lthumb[data-yt] button').forEach(b => b.onclick = () => { const t = b.parentElement;
+        document.querySelectorAll('.lthumb[data-yt]').forEach(o => { if (o !== t && o.querySelector('iframe')) o.innerHTML = thumb(o.dataset.yt, ''); });
+        t.innerHTML = `<iframe src="https://www.youtube.com/embed/${esc(t.dataset.yt)}?autoplay=1&playsinline=1&rel=0" title="Lesson video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`; bindThumbs(); });
+      bindThumbs();
+    }
+    const all = d.courses, L = id => all.flatMap(c => c.lessons).find(l => l.id == id), Q = id => all.flatMap(c => c.lessons).flatMap(l => l.questions).find(q => q.id == id);
+    const cf = (c = {}) => formSheet(c.id ? 'Edit course' : 'New course', [{name: 'title', label: 'Course title', value: c.title}, {name: 'descr', label: 'One-line description', value: c.descr}, {name: 'sort', label: 'Order (1 = first)', type: 'number', value: c.sort ?? all.length + 1}, {name: 'is_free', label: 'Free course (open on the free plan)', type: 'check', value: +c.is_free}, {name: 'published', label: 'Live (visible to businesses)', type: 'check', value: c.id ? +c.published : 1}], 'Save', async (v, close) => { await api('a_course_save', {...v, id: c.id || 0}); close(); viewAdmin(); });
+    const lf = (l = {}, cid) => formSheet(l.id ? 'Edit lesson' : 'Add lesson', [{name: 'title', label: 'Lesson title', value: l.title}, {name: 'yt', label: 'YouTube link (unlisted)', value: l.yt, hint: 'Paste the video or Shorts link. Leave blank to add it later.'}, {name: 'sort', label: 'Order (1 = first)', type: 'number', value: l.sort ?? ((all.find(c => c.id == cid) || {lessons: []}).lessons.length + 1)}], 'Save', async (v, close) => { await api('a_lesson_save', {...v, id: l.id || 0, course_id: cid, duration: +l.duration || 0}); close(); viewAdmin(); });
+    const qf = (q = {}, lid) => formSheet(q.id ? 'Edit question' : 'Add question', [{name: 'q', label: 'Question', value: q.q}, {name: 'a', label: 'Option 1', value: q.a}, {name: 'b', label: 'Option 2', value: q.b}, {name: 'c', label: 'Option 3 (optional)', value: q.c}, {name: 'd', label: 'Option 4 (optional)', value: q.d}, {name: 'correct', label: 'Correct option', type: 'select', value: q.correct ?? 0, options: [[0, 'Option 1'], [1, 'Option 2'], [2, 'Option 3'], [3, 'Option 4']]}], 'Save', async (v, close) => { await api('a_question_save', {...v, correct: +v.correct, id: q.id || 0, lesson_id: lid}); close(); viewAdmin(); });
+    if ($('#nc')) $('#nc').onclick = () => cf();
+    document.querySelectorAll('[data-sc]').forEach(b => { b.onclick = () => { ACOURSE = +b.dataset.sc; viewAdmin(); window.scrollTo(0, 0); }; b.onkeydown = e => { if (e.key === 'Enter') b.onclick(); }; });
+    document.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => cf(all.find(c => c.id == b.dataset.ec)));
+    document.querySelectorAll('[data-nl]').forEach(b => b.onclick = () => lf({}, +b.dataset.nl));
+    document.querySelectorAll('[data-el]').forEach(b => b.onclick = () => lf(L(b.dataset.el), 0));
+    document.querySelectorAll('[data-nq]').forEach(b => b.onclick = () => qf({}, +b.dataset.nq));
+    document.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { const l = L(b.dataset.pv);
+      sheet(`<div class="row between"><h2 style="margin:4px 0;font-size:16px">${esc(l.title)}</h2><button class="btn sm x">Close</button></div>
+        <div class="player"><iframe src="https://www.youtube.com/embed/${esc(l.yt)}?playsinline=1&rel=0" title="Lesson video" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+        <p class="mut sm">Admin preview. This is the video your customers' employees will see. Watching here is not tracked.</p>
+        <h2>Test after this lesson</h2>${l.questions.map((q, i) => `<div class="card"><b>${i + 1}. ${esc(q.q)}</b>${[q.a, q.b, q.c, q.d].map((o, n) => o ? `<div class="opt ${n == q.correct ? 'right' : ''}" style="cursor:default"><span>${esc(o)}${n == q.correct ? ' (correct)' : ''}</span></div>` : '').join('')}</div>`).join('') || '<p class="mut">No questions yet.</p>'}`,
+        (d, close) => { $('.x', d).onclick = close; }); });
+    document.querySelectorAll('[data-eq]').forEach(b => b.onclick = () => qf(Q(b.dataset.eq), +b.dataset.lid));
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = function () { if (!this.dataset.sure) { this.dataset.sure = 1; this.textContent = 'Tap again to delete'; return; } const [what, id] = this.dataset.del.split(':'); api('a_delete', {what, id: +id}).then(() => { if (what === 'course') ACOURSE = 0; toast('Deleted'); viewAdmin(); }).catch(e => sheet(`<div class="err">${esc(e.message)}</div>`)); });
+  }
+  bindAdminSeg();
+}
+
+// ---------- router ----------
+async function route() {
+  stopPlayer(); $('#sheets').innerHTML = ''; window.scrollTo(0, 0); if (!$('#app').children.length) $('#app').innerHTML = '<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
+  try {
+    if (!ME) ME = await api('me');
+    const h = location.hash || '#/';
+    if (h.startsWith('#/setup')) return viewSetup();
+    if (!ME.user) return viewAuth(h === '#/start' ? 'signup' : 'login');
+    const m = h.match(/^#\/(course|lesson)\/(\d+)/);
+    if (m) return await (m[1] === 'course' ? viewCourse(+m[2]) : viewLesson(+m[2]));
+    if (ME.user.role === 'admin') return await viewAdmin();
+    if (ME.user.role === 'owner' && VIEW === 'profile') return viewProfile();
+    if (ME.user.role === 'owner' && VIEW === 'owner') return await viewOwner();
+    return await viewLearn();
+  } catch (e) {
+    if (e.code === 401) { ME = null; try { ME = await api('me'); } catch (x) {} if (ME) return viewAuth(); }
+    $('#app').innerHTML = `<div class="err" style="margin-top:20px">${esc(e.message)}</div><button class="btn" onclick="location.hash='#/';location.reload()">Go to start</button>`;
+  }
+}
+window.addEventListener('hashchange', route); route();
+</script>
+</body>
+</html>

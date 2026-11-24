@@ -1,0 +1,4 @@
+# Private settings (setup key, payment keys) and customer records never go in the repo
+config.php
+data/*
+!data/.htaccess
