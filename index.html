@@ -123,6 +123,20 @@ body.auth .wrap{max-width:1100px}
 .authcols{display:flex;gap:40px;align-items:center;max-width:1040px;margin:0 auto;min-height:92vh}.authcols .hero{flex:1 1 0;margin:0;padding:48px 40px}.authcols .hero h1{font-size:40px}.authform{flex:0 0 400px}
 .lcols{display:flex;gap:28px;align-items:flex-start}.lvid{flex:0 0 300px}.lvid .player{margin-top:0;max-width:300px}.lside{flex:1;min-width:0}.lside .card:first-child,.lside h2:first-child{margin-top:0}
 }
+/* Thumbnail-led course catalogue */
+.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,245px),1fr));gap:18px;align-items:stretch}
+.course-grid .course-card{margin:0;display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:14px;transition:box-shadow .18s,transform .18s}
+.course-grid .course-card:hover{box-shadow:0 8px 24px #231b1218;transform:translateY(-2px)}
+.course-body{padding:16px;display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+.course-body h2{font-size:18px;margin:0;line-height:1.3}.course-body .open{margin-top:auto;padding-top:8px;color:var(--or);font-weight:700}
+.course-cover{position:relative;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(125deg,#192c48,#354e79 65%,#b84c1e);color:#fff;display:flex;align-items:center;justify-content:center;padding:14px}
+.course-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.course-cover .fallback{position:relative;width:100%;display:flex;flex-direction:column;gap:8px;justify-content:center;font-size:clamp(16px,2vw,24px);font-weight:800;line-height:1.2}.course-cover .fallback small{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#f4d7ad}.course-cover:has(img) .fallback{visibility:hidden}
+.course-tools{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}.course-tools input{flex:2;min-width:160px;margin:0}.course-tools select{flex:1;min-width:135px;margin:0}.course-tools button{white-space:nowrap}
+.course-hero{display:grid;grid-template-columns:minmax(180px,280px) 1fr;gap:20px;align-items:center;margin-bottom:18px}.course-hero .course-cover{border-radius:10px}.course-hero h1{margin:0 0 8px}
+.course-upload{margin:8px 0 14px}.course-upload .course-cover{max-width:360px;border-radius:10px;margin-bottom:8px}.course-upload input{max-width:100%}
+.owner-catalogue .course-grid{grid-template-columns:1fr}.owner-catalogue .course-cover{aspect-ratio:16/9}.course-card[hidden]{display:none!important}
+@media(min-width:1250px){.course-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.owner-catalogue .course-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.course-grid{grid-template-columns:1fr}.course-hero{grid-template-columns:1fr}.course-tools input,.course-tools select{flex-basis:100%}}
 </style>
 </head>
 <body>
@@ -152,6 +166,31 @@ const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
 const wt = s => !s.seconds ? '0 min' : s.seconds < 60 ? 'under 1 min' : Math.round(s.seconds / 60) + ' min';
 const ring = (p, col) => `<svg class="ring" role="img" aria-label="${p} percent" width="56" height="56" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#EEE9DF" stroke-width="8"/>${p > 0 ? `<circle cx="32" cy="32" r="26" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(163.4 * Math.min(100, p) / 100).toFixed(1)} 163.4" transform="rotate(-90 32 32)"/>` : ''}</svg>`;
 const thumb = (id, title) => `<img src="https://i.ytimg.com/vi/${esc(id)}/hqdefault.jpg" alt="" loading="lazy"><button aria-label="Play ${esc(title || 'video')}"><span aria-hidden="true">▶</span></button>`;
+
+const cover = c => `<div class="course-cover"><div class="fallback"><small>BizSkill · Training</small><span>${esc(c.title || 'Course thumbnail')}</span></div>${/^[a-f0-9]{32}\.jpg$/.test(c.thumbnail || '') ? `<img src="uploads/courses/${esc(c.thumbnail)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</div>`;
+const courseAttr = c => `data-filter-course data-search="${esc([c.title,c.descr,c.category,c.instructor].join(' ').toLowerCase())}" data-cat="${+c.category_id||0}"`;
+function courseTools(courses, categories) {
+  const cats = categories || [...new Map(courses.filter(c=>c.category_id).map(c=>[+c.category_id,{id:c.category_id,name:c.category}])).values()];
+  return `<div class="course-tools"><input type="search" aria-label="Search courses" placeholder="Search courses..." data-course-search><select aria-label="Filter courses by category" data-course-category><option value="">All categories</option>${cats.map(c=>`<option value="${+c.id}">${esc(c.name)}</option>`).join('')}<option value="0">Uncategorized</option></select></div><p class="mut" data-course-empty hidden>No matching courses.</p>`;
+}
+function bindCourseTools(root=document) {
+  const search=$('[data-course-search]',root), cat=$('[data-course-category]',root), empty=$('[data-course-empty]',root); if(!search||!cat)return;
+  const filter=()=>{let count=0;root.querySelectorAll('[data-filter-course]').forEach(el=>{el.hidden=!(el.dataset.search.includes(search.value.trim().toLowerCase()) && (!cat.value||el.dataset.cat===cat.value));if(!el.hidden)count++;});if(empty)empty.hidden=count>0;};
+  search.oninput=cat.onchange=filter;
+}
+async function resizeCourseImage(file) {
+  if(!file || !['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>15*1024*1024)throw Error('Choose a JPG, PNG or WebP image under 15 MB.');
+  const url=URL.createObjectURL(file);
+  try {
+    const im=new Image();im.src=url;await im.decode();
+    const cv=document.createElement('canvas');cv.width=1280;cv.height=720;
+    const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,1280,720);
+    const scale=Math.max(1280/im.width,720/im.height),w=im.width*scale,h=im.height*scale;
+    cx.drawImage(im,(1280-w)/2,(720-h)/2,w,h);
+    return cv.toDataURL('image/jpeg',.84);
+  } finally {URL.revokeObjectURL(url);}
+}
+
 const EYE = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', EYEOFF = '<path d="M3 3l18 18M10.6 5.2A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.3 6.4C3.6 8.2 2 12 2 12s3.5 7 10 7c1.6 0 3-.4 4.3-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>';
 // Adds a show/hide eye button to every password box under root.
 function pwEyes(root = document) { root.querySelectorAll('input[type=password]:not([data-eye])').forEach(inp => { inp.dataset.eye = 1; const w = document.createElement('div'); w.className = 'pw'; inp.parentNode.insertBefore(w, inp); w.appendChild(inp);
@@ -297,10 +336,11 @@ async function viewOwner(adminBiz) {
     : ro ? '<p class="mut">No employees added yet.</p>' : `<div class="card"><b>Start in three steps</b><p class="sm mut">1. Open Employee View to see what your employees will see.<br>2. Add your first employee.<br>3. Assign a course and watch the scores arrive here.</p></div>`}
   </section><aside class="colside">
   ${attn.length ? `<h2>Needs attention</h2><div class="card" style="padding-top:8px">${attn.slice(0, 6).map(a => `<div class="attn"><i class="${a[0]}"></i><div>${a[1]}</div></div>`).join('')}</div>` : ''}
-  <h2>Courses</h2>
-  ${d.courses.map(c => `<div class="card"><div class="row between"><div class="grow"><b>${esc(c.title)}</b><div class="mut sm">${esc(c.descr)}</div><div class="mut sm">${c.lessons} lesson${c.lessons == 1 ? '' : 's'}</div></div>${ro ? '' : `<button class="btn sm" data-all="${c.id}">Assign to all</button>`}</div></div>`).join('') || '<p class="mut">No courses published yet.</p>'}
-  ${d.locked.map(c => `<div class="card" style="opacity:.75"><div class="row between"><div class="grow"><b>${esc(c.title)}</b><div class="mut sm">${esc(c.descr)}</div><div class="mut sm">${c.lessons} lesson${c.lessons == 1 ? '' : 's'}</div></div>${ro ? '<span class="tag">Locked</span>' : '<button class="btn sm" data-up="1">Locked · Upgrade</button>'}</div></div>`).join('')}
+  <h2>Courses</h2><div class="owner-catalogue">${courseTools([...d.courses,...d.locked])}<div class="course-grid">
+  ${d.courses.map(c => `<div class="card course-card" ${courseAttr(c)}>${cover(c)}<div class="course-body"><div class="row between"><div class="grow"><b>${esc(c.title)}</b><div class="mut sm">${esc(c.descr)}</div><div class="mut sm">${c.lessons} lesson${c.lessons == 1 ? '' : 's'}</div></div>${ro ? '' : `<button class="btn sm" data-all="${c.id}">Assign to all</button>`}</div></div></div>`).join('') || '<p class="mut">No courses published yet.</p>'}
+  ${d.locked.map(c => `<div class="card course-card" ${courseAttr(c)}>${cover(c)}<div class="course-body"><div class="row between"><div class="grow"><b>${esc(c.title)}</b><div class="mut sm">${esc(c.descr)}</div><div class="mut sm">${c.lessons} lesson${c.lessons == 1 ? '' : 's'}</div></div>${ro ? '<span class="tag">Locked</span>' : '<button class="btn sm" data-up="1">Locked · Upgrade</button>'}</div></div></div>`).join('')}</div></div>
   </aside></div>`;
+  bindCourseTools();
   const openStaff = id => staffSheet(d.staff.find(x => x.id == id), d, ro);
   document.querySelectorAll('[data-e]').forEach(el => { el.onclick = () => openStaff(el.dataset.e); el.onkeydown = e => { if (e.key === 'Enter') openStaff(el.dataset.e); }; });
   if (ro) { bindAdminSeg(); if ($('#vbBack')) $('#vbBack').onclick = () => { ABIZ = 0; viewOwner(ABIZ); }; return; }
@@ -338,14 +378,14 @@ async function viewLearn() {
   topBar(); const d = await api('my_courses');
   $('#app').innerHTML = (ME.user.role === 'admin' ? adminSeg() : viewSwitch()) + previewNote() + `<div class="phead"><h1>${ME.user.role !== 'employee' ? 'Employee View' : 'My Courses'}</h1></div>
     ${d.total ? `<div class="tiles t3"><div class="tile"><div><div class="n">${d.done}<span> / ${d.total}</span></div><div class="l">Lessons completed</div></div></div><div class="tile"><div><div class="n">${d.avg === null ? '–' : d.avg + '%'}</div><div class="l">My average score</div></div></div><div class="tile"><div><div class="n" style="font-size:20px">${wt(d)}</div><div class="l">Time watched</div></div></div></div>` : ''}
-    <div class="cgrid">${d.courses.map(c => `<div class="card tap" data-c="${c.id}"><div class="row between"><b>${esc(c.title)}</b>${c.total && c.done === c.total ? '<span class="tag ok">Completed</span>' : c.due && c.due * 1000 < Date.now() ? '<span class="tag bad">Overdue</span>' : ''}</div><div class="mut sm">${esc(c.descr)}</div>
-      <div class="bar ${c.total && c.done === c.total ? 'ok' : ''}" style="margin-top:10px"><i style="width:${pct(c.done, c.total)}%"></i></div><div class="stats"><span><b>${c.done}/${c.total}</b> lessons</span><span>Score <b>${c.avg === null ? '–' : c.avg + '%'}</b></span>${c.due ? `<span>Finish by <b>${fmtDate(c.due)}</b></span>` : ''}</div></div>`).join('')
+    ${courseTools(d.courses)}<div class="course-grid">${d.courses.map(c => `<div class="card tap course-card" data-c="${c.id}" ${courseAttr(c)} tabindex="0" role="button">${cover(c)}<div class="course-body"><div class="row between"><b>${esc(c.title)}</b>${c.total && c.done === c.total ? '<span class="tag ok">Completed</span>' : c.due && c.due * 1000 < Date.now() ? '<span class="tag bad">Overdue</span>' : ''}</div><div class="mut sm">${esc(c.descr)}</div>
+      <div class="bar ${c.total && c.done === c.total ? 'ok' : ''}" style="margin-top:10px"><i style="width:${pct(c.done, c.total)}%"></i></div><div class="stats"><span><b>${c.done}/${c.total}</b> lessons</span><span>Score <b>${c.avg === null ? '–' : c.avg + '%'}</b></span>${c.due ? `<span>Finish by <b>${fmtDate(c.due)}</b></span>` : ''}</div><div class="open">${c.done ? 'Continue learning' : 'Start learning'} ›</div></div></div>`).join('')
       || '<div class="card"><b>No course assigned yet</b><p class="mut sm">Your employer will assign your first course. Check back soon.</p></div>'}</div>`;
-  bindSwitch(); if (ME.user.role === 'admin') bindAdminSeg(); document.querySelectorAll('[data-c]').forEach(el => el.onclick = () => go('#/course/' + el.dataset.c));
+  bindCourseTools(); bindSwitch(); if (ME.user.role === 'admin') bindAdminSeg(); document.querySelectorAll('[data-c]').forEach(el => {el.onclick = () => go('#/course/' + el.dataset.c);el.onkeydown=e=>{if(e.key==='Enter')el.onclick();};});
 }
 async function viewCourse(id) {
   topBar(); const c = await api('course', {id});
-  $('#app').innerHTML = previewNote() + `<button class="link" id="back">‹ All courses</button><h1>${esc(c.title)}</h1><p class="mut">${esc(c.descr)}</p>
+  $('#app').innerHTML = previewNote() + `<button class="link" id="back">‹ All courses</button><div class="card course-hero">${cover(c)}<div><div class="mut sm">${esc(c.category || 'Training')}</div><h1>${esc(c.title)}</h1><p class="mut">${esc(c.descr)}</p><div class="stats"><span>${c.lessons.length} lessons</span><span>${c.lessons.reduce((a,l)=>a+l.nq,0)} questions</span>${c.instructor?`<span>${esc(c.instructor)}</span>`:''}</div></div></div><h2>Course Content</h2>
     ${c.lessons.map((l, i) => `<div class="card ${l.open ? 'tap' : ''}" data-l="${l.open ? l.id : ''}" ${l.open ? '' : 'style="opacity:.55"'}><div class="lesson"><div class="num ${l.done ? 'done' : l.open ? 'open' : ''}">${l.done ? '✓' : i + 1}</div>
       <div class="grow"><b>${esc(l.title)}</b><div class="mut sm">${l.done ? 'Completed' + (l.score !== null ? ' · Test ' + l.score + '%' : '') : !l.open ? 'Locked: finish the lesson above' : l.completed ? 'Watched · Take the test' : l.has_video ? 'Tap to watch' : 'Video coming soon'}${ME.user.role === 'admin' ? ' · ' + l.watched + ' s tracked' : ''}</div></div></div></div>`).join('') || '<p class="mut">Lessons are being added.</p>'}`;
   $('#back').onclick = () => go('#/'); document.querySelectorAll('[data-l]').forEach(el => { if (el.dataset.l) el.onclick = () => go('#/lesson/' + el.dataset.l); });
@@ -441,17 +481,17 @@ async function viewAdmin() {
     const tags = c => `<span class="tag ${+c.is_free ? 'or' : ''}">${+c.is_free ? 'Free' : 'Paid'}</span> <span class="tag ${+c.published ? 'ok' : 'bad'}">${+c.published ? 'Live' : 'Hidden'}</span>`;
     if (!sel) {
       const nl = d.courses.reduce((a, c) => a + c.lessons.length, 0), nv = d.courses.reduce((a, c) => a + c.lessons.filter(l => l.yt).length, 0);
-      $('#app').innerHTML = seg + `<div class="phead"><h1>Courses</h1><button class="btn pri" id="nc">New course</button></div>
-        <div class="cgrid3">${d.courses.map(c => { const n = c.lessons.length, v = c.lessons.filter(l => l.yt).length; return `<div class="card tap ccard" data-sc="${c.id}" tabindex="0" role="button" aria-label="Open ${esc(c.title)}">
+      $('#app').innerHTML = seg + `<div class="phead"><h1>Courses</h1><div class="row"><button class="btn" id="cats">Categories</button><button class="btn pri" id="nc">New course</button></div></div>
+        ${courseTools(d.courses,d.categories)}<div class="course-grid">${d.courses.map(c => { const n = c.lessons.length, v = c.lessons.filter(l => l.yt).length; return `<div class="card tap course-card" data-sc="${c.id}" ${courseAttr(c)} tabindex="0" role="button" aria-label="Open ${esc(c.title)}">${cover(c)}<div class="course-body">
           <div class="row between"><span>${tags(c)}</span><span class="mut sm">Course ${+c.sort || ''}</span></div>
-          <h2 style="margin:14px 0 4px;font-size:20px">${esc(c.title)}</h2><div class="mut sm" style="min-height:38px">${esc(c.descr)}</div>
+          <div class="mut sm">${esc(c.category || 'Uncategorized')}${c.instructor?' · '+esc(c.instructor):''}</div><h2>${esc(c.title)}</h2><div class="mut sm" style="min-height:38px">${esc(c.descr)}</div>
           <div class="bar ${n && v === n ? 'ok' : ''}" style="margin-top:14px"><i style="width:${pct(v, n)}%"></i></div>
-          <div class="stats"><span><b>${n}</b> lesson${n == 1 ? '' : 's'}</span><span><b>${v}</b> with video</span></div>
-          <div class="open">Open course <span aria-hidden="true">›</span></div></div>`; }).join('') || '<div class="card"><b>No courses yet</b><p class="mut sm">Tap New course to create your first one.</p></div>'}</div>`;
+          <div class="stats"><span><b>${n}</b> lesson${n == 1 ? '' : 's'}</span><span><b>${v}</b> with video</span><span>${c.lessons.reduce((a,l)=>a+l.questions.length,0)} MCQs</span></div>
+          <div class="open">Open course <span aria-hidden="true">›</span></div></div></div>`; }).join('') || '<div class="card"><b>No courses yet</b><p class="mut sm">Tap New course to create your first one.</p></div>'}</div>`;
     } else {
       const c = sel, v = c.lessons.filter(l => l.yt).length, nq = c.lessons.reduce((a, l) => a + l.questions.length, 0);
       $('#app').innerHTML = seg + `<button class="link" id="backc">‹ All courses</button>
-        <div class="card chead"><div class="row between" style="align-items:flex-start;flex-wrap:wrap"><div class="grow"><h1 style="margin:0 0 4px">${esc(c.title)}</h1><div class="mut">${esc(c.descr)}</div></div><span>${tags(c)}</span></div>
+        <div class="card chead"><div class="course-hero">${cover(c)}<div><div class="row between" style="align-items:flex-start;flex-wrap:wrap"><div class="grow"><h1 style="margin:0 0 4px">${esc(c.title)}</h1><div class="mut">${esc(c.descr)}</div></div><span>${tags(c)}</span></div><div class="mut sm">${esc(c.category||'Uncategorized')}${c.instructor?' · '+esc(c.instructor):''}</div></div></div>
           <div class="stats" style="margin-top:12px;font-size:14px"><span><b>${c.lessons.length}</b> lesson${c.lessons.length == 1 ? '' : 's'}</span><span><b>${v}</b> with video</span><span><b>${nq}</b> test questions</span><span>${+c.is_free ? 'Open on the free plan' : 'Yearly plan only'}</span></div>
           <div class="row" style="margin-top:16px;flex-wrap:wrap"><button class="btn sm pri" data-nl="${c.id}">Add lesson</button><button class="btn sm" data-ec="${c.id}">Edit course</button><button class="btn sm danger" data-del="course:${c.id}">Delete course</button></div></div>
         <h2>Lessons</h2>
@@ -469,12 +509,24 @@ async function viewAdmin() {
       bindThumbs();
     }
     const all = d.courses, L = id => all.flatMap(c => c.lessons).find(l => l.id == id), Q = id => all.flatMap(c => c.lessons).flatMap(l => l.questions).find(q => q.id == id);
-    const cf = (c = {}) => formSheet(c.id ? 'Edit course' : 'New course', [{name: 'title', label: 'Course title', value: c.title}, {name: 'descr', label: 'One-line description', value: c.descr}, {name: 'sort', label: 'Order (1 = first)', type: 'number', value: c.sort ?? all.length + 1}, {name: 'is_free', label: 'Free course (open on the free plan)', type: 'check', value: +c.is_free}, {name: 'published', label: 'Live (visible to businesses)', type: 'check', value: c.id ? +c.published : 1}], 'Save', async (v, close) => { await api('a_course_save', {...v, id: c.id || 0}); close(); viewAdmin(); });
+
+    const cf = (c = {}) => formSheet(c.id ? 'Edit course' : 'New course', [{name:'title',label:'Course title',value:c.title},{name:'descr',label:'One-line description',value:c.descr},{name:'category_id',label:'Category',type:'select',value:c.category_id||0,options:[[0,'Uncategorized'],...(d.categories||[]).filter(x=>+x.active||+x.id===+c.category_id).map(x=>[x.id,x.name])]},{name:'instructor',label:'Instructor (optional)',value:c.instructor},{name:'sort',label:'Order (1 = first)',type:'number',value:c.sort??all.length+1},{name:'is_free',label:'Free course',type:'check',value:+c.is_free},{name:'published',label:'Live (visible to businesses)',type:'check',value:c.id?+c.published:1}], 'Save', async (v,close,el)=>{
+      const file=$('[data-course-file]',el).files[0];if(file)v.thumbnail_data=await resizeCourseImage(file);
+      v.remove_thumbnail=$('[data-remove-thumb]',el).checked?1:0;await api('a_course_save',{...v,id:c.id||0});close();viewAdmin();
+    }, `<div class="course-upload"><label>Course thumbnail</label><div data-preview>${cover(c)}</div><input type="file" data-course-file accept="image/jpeg,image/png,image/webp"><p class="mut sm">JPG, PNG or WebP. Cropped and compressed to 1280 × 720.</p><label class="row"><input type="checkbox" data-remove-thumb style="width:18px;height:18px"> Remove current thumbnail</label></div>`);
+    function bindUpload(){const el=document.querySelector('.sheet:last-child');if(!el)return;const f=$('[data-course-file]',el);if(!f)return;const preview=$('[data-preview]',el);f.onchange=async()=>{try{if(!f.files[0])return;const data=await resizeCourseImage(f.files[0]);preview.innerHTML='<div class="course-cover"><img alt="Thumbnail preview" src="'+data+'"></div>';$('[data-remove-thumb]',el).checked=false;}catch(e){toast(e.message);f.value='';}};}
+    const openCF=c=>{cf(c);bindUpload();};
+    function categories(){sheet(`<div class="row between"><h2>Course Categories</h2><button class="btn x">Close</button></div><div id="catlist">${(d.categories||[]).map(c=>`<div class="card row between"><b>${esc(c.name)}</b><span class="tag">${+c.active?'Active':'Inactive'}</span><button class="btn sm" data-editcat="${c.id}">Edit</button></div>`).join('')||'<p class="mut">No categories yet.</p>'}</div><button class="btn pri wide" id="newcat">New category</button>`,(el,close)=>{
+      $('.x',el).onclick=close;const edit=(c={})=>{close();formSheet(c.id?'Edit category':'New category',[{name:'name',label:'Category name',value:c.name},{name:'active',label:'Active',type:'check',value:c.id?+c.active:1}],'Save',async(v,cl)=>{await api('a_category_save',{...v,id:c.id||0});cl();await viewAdmin();});};
+      $('#newcat',el).onclick=()=>edit();el.querySelectorAll('[data-editcat]').forEach(b=>b.onclick=()=>edit(d.categories.find(c=>+c.id===+b.dataset.editcat)));
+    });}
+    if ($('#cats')) $('#cats').onclick=categories;
+    bindCourseTools();
     const lf = (l = {}, cid) => formSheet(l.id ? 'Edit lesson' : 'Add lesson', [{name: 'title', label: 'Lesson title', value: l.title}, {name: 'yt', label: 'YouTube link (unlisted)', value: l.yt, hint: 'Paste the video or Shorts link. Leave blank to add it later.'}, {name: 'sort', label: 'Order (1 = first)', type: 'number', value: l.sort ?? ((all.find(c => c.id == cid) || {lessons: []}).lessons.length + 1)}], 'Save', async (v, close) => { await api('a_lesson_save', {...v, id: l.id || 0, course_id: cid, duration: +l.duration || 0}); close(); viewAdmin(); });
     const qf = (q = {}, lid) => formSheet(q.id ? 'Edit question' : 'Add question', [{name: 'q', label: 'Question', value: q.q}, {name: 'a', label: 'Option 1', value: q.a}, {name: 'b', label: 'Option 2', value: q.b}, {name: 'c', label: 'Option 3 (optional)', value: q.c}, {name: 'd', label: 'Option 4 (optional)', value: q.d}, {name: 'correct', label: 'Correct option', type: 'select', value: q.correct ?? 0, options: [[0, 'Option 1'], [1, 'Option 2'], [2, 'Option 3'], [3, 'Option 4']]}], 'Save', async (v, close) => { await api('a_question_save', {...v, correct: +v.correct, id: q.id || 0, lesson_id: lid}); close(); viewAdmin(); });
-    if ($('#nc')) $('#nc').onclick = () => cf();
+    if ($('#nc')) $('#nc').onclick = () => openCF({});
     document.querySelectorAll('[data-sc]').forEach(b => { b.onclick = () => { ACOURSE = +b.dataset.sc; viewAdmin(); window.scrollTo(0, 0); }; b.onkeydown = e => { if (e.key === 'Enter') b.onclick(); }; });
-    document.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => cf(all.find(c => c.id == b.dataset.ec)));
+    document.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => openCF(all.find(c => c.id == b.dataset.ec)));
     document.querySelectorAll('[data-nl]').forEach(b => b.onclick = () => lf({}, +b.dataset.nl));
     document.querySelectorAll('[data-el]').forEach(b => b.onclick = () => lf(L(b.dataset.el), 0));
     document.querySelectorAll('[data-nq]').forEach(b => b.onclick = () => qf({}, +b.dataset.nq));

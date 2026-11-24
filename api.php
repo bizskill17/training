@@ -39,6 +39,28 @@ foreach ([
 ] as $sql) $db->exec($sql);
 try { $db->query('SELECT lastpos FROM progress LIMIT 1'); } catch (Throwable $e) { $db->exec('ALTER TABLE progress ADD COLUMN lastpos INT NOT NULL DEFAULT 0'); }   // added 24 Nov 2026
 
+// Course catalogue metadata (additive migration).
+$db->exec("CREATE TABLE IF NOT EXISTS categories (id $PK, name VARCHAR(100) NOT NULL UNIQUE, active INT NOT NULL DEFAULT 1)$T");
+foreach (['category_id'=>'INT NOT NULL DEFAULT 0','instructor'=>"VARCHAR(120) NOT NULL DEFAULT ''",'thumbnail'=>"VARCHAR(100) NOT NULL DEFAULT ''"] as $col=>$def) {
+    try { $db->query("SELECT $col FROM courses LIMIT 1"); }
+    catch (Throwable $e) { try { $db->exec("ALTER TABLE courses ADD COLUMN $col $def"); } catch (Throwable $race) { $db->query("SELECT $col FROM courses LIMIT 1"); } }
+}
+function category_name($id): string { return (string)(val('SELECT name FROM categories WHERE id=?',[(int)$id]) ?? ''); }
+function course_meta(array $c): array { return ['category_id'=>(int)$c['category_id'],'category'=>category_name($c['category_id']),'instructor'=>$c['instructor'],'thumbnail'=>$c['thumbnail']]; }
+function store_thumb(string $data): string {
+    if (strlen($data)>2000000 || !preg_match('~^data:image/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$~D',$data,$m)) fail('Invalid thumbnail.');
+    $raw=base64_decode($m[2],true); if (!$raw || strlen($raw)>1400000) fail('Thumbnail too large.');
+    $info=@getimagesizefromstring($raw);
+    if (!$info || $info[0]>1600 || $info[1]>1000 || $info[0]<1 || $info[1]<1 || !in_array($info[2],[IMAGETYPE_JPEG,IMAGETYPE_PNG,IMAGETYPE_WEBP],true)) fail('Invalid image dimensions or format.');
+    if (!function_exists('imagecreatefromstring') || !function_exists('imagejpeg')) fail('Image processing is unavailable on this server.',503);
+    $im=@imagecreatefromstring($raw); if (!$im) fail('Invalid image.');
+    $w=imagesx($im); $h=imagesy($im); $cw=min($w,(int)round($h*16/9)); $ch=min($h,(int)round($w*9/16));
+    $out=imagecreatetruecolor(1280,720); imagefill($out,0,0,imagecolorallocate($out,255,255,255));
+    imagecopyresampled($out,$im,0,0,(int)(($w-$cw)/2),(int)(($h-$ch)/2),1280,720,$cw,$ch);
+    $dir=__DIR__.'/uploads/courses'; if (!is_dir($dir) && !mkdir($dir,0755,true) && !is_dir($dir)) fail('Cannot create image folder.',500);
+    $name=bin2hex(random_bytes(16)).'.jpg'; if (!imagejpeg($out,$dir.'/'.$name,85)) fail('Cannot save thumbnail.',500);
+    return $name;
+}
 // ---------- request ----------
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
 session_set_cookie_params(['lifetime' => 60 * 60 * 24 * 30, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax', 'secure' => $secure]);
@@ -156,9 +178,9 @@ case 'setup':
 case 'dash':
     need('owner', 'admin'); $bid = $U['role'] === 'admin' ? i('business_id') : (int)$U['business_id']; $b = biz($bid);   // admin may look at any business, read-only
     $courses = allowed_courses(['role' => 'owner', 'business_id' => $bid, 'id' => 0]); $cl = [];
-    foreach ($courses as $c) $cl[(int)$c['id']] = ['id' => (int)$c['id'], 'title' => $c['title'], 'descr' => $c['descr'], 'is_free' => (int)$c['is_free'],
+    foreach ($courses as $c) $cl[(int)$c['id']] = ['id' => (int)$c['id'], 'title' => $c['title'], 'descr' => $c['descr'], 'is_free' => (int)$c['is_free'], ...course_meta($c),
         'lessons' => (int)val('SELECT COUNT(*) FROM lessons WHERE course_id=?', [$c['id']])];
-    $locked = $b['paid'] ? [] : rows('SELECT id,title,descr,(SELECT COUNT(*) FROM lessons l WHERE l.course_id=c.id) AS lessons FROM courses c WHERE published=1 AND is_free=0 ORDER BY sort,id');
+    $locked = $b['paid'] ? [] : rows('SELECT id,title,descr,thumbnail,category_id,instructor,(SELECT name FROM categories WHERE id=c.category_id) AS category,(SELECT COUNT(*) FROM lessons l WHERE l.course_id=c.id) AS lessons FROM courses c WHERE published=1 AND is_free=0 ORDER BY sort,id');
     $staff = [];
     foreach (rows("SELECT id,name,mobile,active,last_active FROM users WHERE business_id=? AND role='employee' ORDER BY active DESC, name", [$bid]) as $e) {
         $tot = 0; $done = 0; $mins = 0; $sc = []; $over = 0; $cs = [];
@@ -207,12 +229,12 @@ case 'my_courses':
     $all = []; $secs = 0; $td = 0; $tt = 0;
     foreach (allowed_courses($U) as $c) { $st = lesson_states((int)$U['id'], (int)$c['id']); $d = count(array_filter($st, fn($x) => $x['done']));
         $sc = array_values(array_filter(array_column($st, 'score'), fn($x) => $x !== null)); $all = array_merge($all, $sc); $secs += array_sum(array_column($st, 'watched')); $td += $d; $tt += count($st);
-        $o[] = ['id' => (int)$c['id'], 'title' => $c['title'], 'descr' => $c['descr'], 'done' => $d, 'total' => count($st), 'due' => (int)$c['due'], 'avg' => $sc ? (int)round(array_sum($sc) / count($sc)) : null]; }
+        $o[] = ['id' => (int)$c['id'], 'title' => $c['title'], 'descr' => $c['descr'], ...course_meta($c), 'done' => $d, 'total' => count($st), 'due' => (int)$c['due'], 'avg' => $sc ? (int)round(array_sum($sc) / count($sc)) : null]; }
     out(['courses' => $o, 'done' => $td, 'total' => $tt, 'avg' => $all ? (int)round(array_sum($all) / count($all)) : null, 'seconds' => (int)$secs]);
 case 'course':
     need('owner', 'employee', 'admin'); $cid = i('id'); $c = null; foreach (allowed_courses($U) as $x) if ((int)$x['id'] === $cid) $c = $x;
     if (!$c) fail('This course is not assigned to you.', 403);
-    out(['id' => $cid, 'title' => $c['title'], 'descr' => $c['descr'], 'lessons' => lesson_states((int)$U['id'], $cid)]);
+    out(['id' => $cid, 'title' => $c['title'], 'descr' => $c['descr'], ...course_meta($c), 'lessons' => lesson_states((int)$U['id'], $cid)]);
 case 'lesson':
     need('owner', 'employee', 'admin'); $l = can_open($U, i('id'));
     $p = row('SELECT * FROM progress WHERE user_id=? AND lesson_id=?', [$U['id'], $l['id']]);
@@ -314,14 +336,30 @@ case 'a_biz_delete':   // removes the business with its owner, staff and their p
     $db->commit(); out(['ok' => true]);
 case 'a_courses':
     need('admin'); $cs = rows('SELECT * FROM courses ORDER BY sort,id');
-    foreach ($cs as &$c) { $c['lessons'] = rows('SELECT * FROM lessons WHERE course_id=? ORDER BY sort,id', [$c['id']]);
+    foreach ($cs as &$c) { $c=array_merge($c,course_meta($c)); $c['lessons'] = rows('SELECT * FROM lessons WHERE course_id=? ORDER BY sort,id', [$c['id']]);
         foreach ($c['lessons'] as &$l) $l['questions'] = rows('SELECT * FROM questions WHERE lesson_id=? ORDER BY id', [$l['id']]); }
-    out(['courses' => $cs]);
+    out(['courses' => $cs,'categories'=>rows('SELECT * FROM categories ORDER BY name')]);
+case 'a_category_save':
+    need('admin'); $name=s('name',100); if ($name==='') fail('Enter category name.');
+    if (val('SELECT 1 FROM categories WHERE LOWER(name)=LOWER(?) AND id<>?',[$name,i('id')])) fail('Category already exists.');
+    if (i('id')) q('UPDATE categories SET name=?,active=? WHERE id=?',[$name,i('active')?1:0,i('id')]);
+    else q('INSERT INTO categories (name,active) VALUES (?,1)',[$name]);
+    out(['ok'=>true]);
 case 'a_course_save':
     need('admin'); $t = s('title', 120); if ($t === '') fail('Enter a course title.');
-    $p = [$t, s('descr', 300), i('is_free') ? 1 : 0, i('published') ? 1 : 0, i('sort')];
-    if (i('id')) q('UPDATE courses SET title=?,descr=?,is_free=?,published=?,sort=? WHERE id=?', [...$p, i('id')]);
-    else q('INSERT INTO courses (title,descr,is_free,published,sort) VALUES (?,?,?,?,?)', $p);
+    $old=i('id')?row('SELECT * FROM courses WHERE id=?',[i('id')]):null;
+    if (i('id') && !$old) fail('Course not found.',404);
+    $cat=array_key_exists('category_id',$in)?i('category_id'):(int)($old['category_id']??0);
+    if ($cat && !val('SELECT 1 FROM categories WHERE id=? AND (active=1 OR id=?)',[$cat,(int)($old['category_id']??0)])) fail('Select an active category.');
+    $img=$old['thumbnail']??''; $new='';
+    if (!empty($in['thumbnail_data'])) { $new=store_thumb((string)$in['thumbnail_data']); $img=$new; }
+    elseif (!empty($in['remove_thumbnail'])) $img='';
+    $p=[$t,s('descr',300),i('is_free')?1:0,i('published')?1:0,i('sort'),$cat,array_key_exists('instructor',$in)?s('instructor',120):($old['instructor']??''),$img];
+    try {
+        if (i('id')) q('UPDATE courses SET title=?,descr=?,is_free=?,published=?,sort=?,category_id=?,instructor=?,thumbnail=? WHERE id=?',[...$p,i('id')]);
+        else q('INSERT INTO courses (title,descr,is_free,published,sort,category_id,instructor,thumbnail) VALUES (?,?,?,?,?,?,?,?)',$p);
+    } catch (Throwable $e) { if ($new) @unlink(__DIR__.'/uploads/courses/'.$new); throw $e; }
+    if ($old && $old['thumbnail']!==$img && preg_match('/^[a-f0-9]{32}\.jpg$/D',$old['thumbnail'])) @unlink(__DIR__.'/uploads/courses/'.$old['thumbnail']);
     out(['id' => i('id') ?: (int)$db->lastInsertId()]);
 case 'a_lesson_save':
     need('admin'); $t = s('title', 160); if ($t === '') fail('Enter a lesson title.'); $yt = yt_id(s('yt', 200));
