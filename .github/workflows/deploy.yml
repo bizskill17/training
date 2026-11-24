@@ -1,0 +1,32 @@
+name: Deploy training to Hostinger
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: training-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and deploy application files
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${FTP_HOST:?Add FTP_HOST in repository secrets}"
+          : "${FTP_USERNAME:?Add FTP_USERNAME in repository secrets}"
+          : "${FTP_PASSWORD:?Add FTP_PASSWORD in repository secrets}"
+          php -l api.php
+          # Explicit allowlist: never upload config.php or touch data/.
+          for file in index.html api.php logo.png; do
+            curl --silent --show-error --fail --ssl-reqd --connect-timeout 20 --max-time 90 --ftp-pasv --user "$FTP_USERNAME:$FTP_PASSWORD" --upload-file "$file" "ftp://$FTP_HOST:21/public_html/$file"
+          done
