@@ -205,8 +205,8 @@ function renderSide() { const r = ME.user.role, cur = r === 'admin' ? ATAB : r =
   const s = $('#side'); s.hidden = false;
   s.innerHTML = `<div class="brand"><img src="logo.png" alt="" width="48" height="34"><b>BizSkill Training</b></div><nav aria-label="Main">${items.map(x => `<button data-n="${x[0]}" class="${cur === x[0] ? 'on' : ''}" ${cur === x[0] ? 'aria-current="page"' : ''}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[x[0]]}</svg>${x[1]}</button>`).join('')}</nav><div class="who"><div class="acct"><span class="av" aria-hidden="true">${esc(ME.user.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase())}</span><span class="grow"><b>${esc(ME.user.name)}</b><span class="tag ok">${r === 'admin' ? 'Admin' : r === 'owner' ? 'Owner' : 'Employee'}</span></span></div><button class="btn wide out" id="sideOut"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M10 12h10M16 8l4 4-4 4"/></svg>Log out</button></div>`;
   s.querySelectorAll('[data-n]').forEach(b => b.onclick = () => { if (r === 'admin') { ATAB = b.dataset.n; ACOURSE = 0; } else if (r === 'owner') { VIEW = b.dataset.n === 'learn' ? 'learner' : b.dataset.n; if (VIEW !== 'profile') localStorage.setItem('bzview', VIEW); } go('#/'); });
-  $('#sideOut').onclick = async () => { stopPlayer(); await api('logout'); ME = await api('me'); go('#/'); }; }
-function go(h) { if (location.hash === h) route(); else location.hash = h; }
+  $('#sideOut').onclick = async () => { stopPlayer(); await api('logout'); ME = await api('me'); ATAB='biz';ABIZ=ACOURSE=0;VIEW='owner'; go('#/'); }; }
+function go(h) { if(h==='#/' && ME?.user) h=homeHash(); if (location.hash === h) route(); else location.hash = h; }
 function stopPlayer() { clearInterval(beatTimer); beatTimer = null; clearInterval(loopTimer); loopTimer = null; try { player && player.destroy && player.destroy(); } catch (e) {} player = null; }
 
 // ---------- sheets (bottom panels) ----------
@@ -263,7 +263,7 @@ function topBar() {
     <button class="btn wide" id="mPw" style="margin-top:10px">Change password</button>
     ${ME.user.role !== 'admin' ? `<a class="btn wide" style="margin-top:10px" href="https://wa.me/${esc(ME.whatsapp)}" target="_blank" rel="noopener">Help on WhatsApp</a>` : ''}
     <button class="btn wide danger" id="mOut" style="margin-top:10px">Log out</button>`, (d, close) => {
-      $('#mOut', d).onclick = async () => { stopPlayer(); await api('logout'); ME = await api('me'); close(); go('#/'); };
+      $('#mOut', d).onclick = async () => { stopPlayer(); await api('logout'); ME = await api('me'); ATAB='biz';ABIZ=ACOURSE=0;VIEW='owner'; close(); go('#/'); };
       if ($('#mPf', d)) $('#mPf', d).onclick = () => { close(); VIEW = 'profile'; go('#/'); };
       $('#mPw', d).onclick = () => { close(); formSheet('Change password', [{name: 'old', label: 'Current password', type: 'password'}, {name: 'password', label: 'New password', type: 'password', hint: 'At least 6 characters.'}], 'Save', async (v, c) => { await api('password', v); c(); }); };
   });
@@ -308,10 +308,10 @@ async function upgrade() {
 async function viewOwner(adminBiz) {
   topBar(); const ro = adminBiz !== undefined; let bizList = [];
   if (ro) bizList = (await api('a_overview')).businesses;
-  if (ro && !bizList.some(b => String(b.id) === String(adminBiz))) { ABIZ = 0;   // no business chosen yet: list them
+  if (ro && !bizList.some(b => String(b.id) === String(adminBiz))) { ABIZ = 0; syncPage();   // no business chosen yet: list them
     $('#app').innerHTML = adminSeg() + `<div class="phead"><h1>Owner View</h1></div>` + (bizList.length ? `<div class="cgrid3">${bizList.map(b => `<div class="card tap ccard" data-vo="${b.id}" tabindex="0" role="button" aria-label="Open ${esc(b.name)}"><h2 style="margin:0 0 4px;font-size:20px">${esc(b.name)}</h2><div class="mut sm">${esc(b.owner || '')}</div><div class="stats"><span><b>${b.staff}</b> ${b.staff == 1 ? 'employee' : 'employees'}</span><span><b>${b.completed}</b> lessons done</span></div><div class="row between" style="margin-top:10px"><div class="open" style="margin:0">Open dashboard <span aria-hidden="true">›</span></div><button class="btn sm danger" data-bdel="${b.id}">Delete</button></div></div>`).join('')}</div>`
       : `<div class="card" style="max-width:420px"><b>No business has signed up yet</b><p class="mut sm">When one does, open it here to see its dashboard the way its owner does.</p></div>`);
-    bindAdminSeg(); document.querySelectorAll('[data-vo]').forEach(b => { b.onclick = () => { ABIZ = b.dataset.vo; viewOwner(ABIZ); }; b.onkeydown = e => { if (e.key === 'Enter' && e.target === b) b.onclick(); }; });
+    bindAdminSeg(); document.querySelectorAll('[data-vo]').forEach(b => { b.onclick = () => { ABIZ = +b.dataset.vo; go(adminHash()); }; b.onkeydown = e => { if (e.key === 'Enter' && e.target === b) b.onclick(); }; });
     bindBizDel(() => viewOwner(0)); return; }
   const d = !ro ? await api('dash') : await api('dash', {business_id: +adminBiz});
   const act = d.staff.filter(s => s.active), tot = act.reduce((a, s) => a + s.total, 0), done = act.reduce((a, s) => a + s.done, 0);
@@ -344,7 +344,7 @@ async function viewOwner(adminBiz) {
   bindCourseTools();
   const openStaff = id => staffSheet(d.staff.find(x => x.id == id), d, ro);
   document.querySelectorAll('[data-e]').forEach(el => { el.onclick = () => openStaff(el.dataset.e); el.onkeydown = e => { if (e.key === 'Enter') openStaff(el.dataset.e); }; });
-  if (ro) { bindAdminSeg(); if ($('#vbBack')) $('#vbBack').onclick = () => { ABIZ = 0; viewOwner(ABIZ); }; return; }
+  if (ro) { bindAdminSeg(); if ($('#vbBack')) $('#vbBack').onclick = () => { ABIZ = 0; go(adminHash()); }; return; }
   bindSwitch();
   document.querySelectorAll('#up1,[data-up]').forEach(b => b.onclick = upgrade);
   $('#addE').onclick = () => formSheet('Add employee', [{name: 'name', label: 'Employee name'}, {name: 'mobile', label: 'Mobile number', type: 'tel', attrs: 'inputmode="numeric"'}, {name: 'password', label: 'Password for the employee', hint: 'At least 6 characters. You will share this with them.'}], 'Add', async (v, close) => {
@@ -457,6 +457,10 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && pla
 
 // ---------- admin ----------
 let ATAB = 'biz', ABIZ = 0, ACOURSE = 0;
+function adminHash(){return '#/admin/'+ATAB+(ATAB==='content'&&ACOURSE?'/'+ACOURSE:ATAB==='owner'&&ABIZ?'/'+ABIZ:'');}
+function homeHash(){return ME?.user?.role==='admin'?adminHash():ME?.user?.role==='owner'?'#/owner/'+(['owner','learner','profile'].includes(VIEW)?VIEW:'owner'):'#/';}
+function syncPage(){const h=homeHash();if(location.hash!==h)history.replaceState(null,'',h);}
+
 function adminSeg() { const t = [['biz', 'Businesses'], ['content', 'Courses'], ['owner', 'Owner View'], ['learn', 'Employee View']]; return `<div class="seg four navseg">${t.map(x => `<button data-a="${x[0]}" class="${ATAB === x[0] ? 'on' : ''}">${x[1]}</button>`).join('')}</div>`; }
 function bindAdminSeg() { document.querySelectorAll('.seg button[data-a]').forEach(b => b.onclick = () => { ATAB = b.dataset.a; ACOURSE = 0; go('#/'); }); }
 function bindBizDel(after) {
@@ -481,6 +485,7 @@ async function viewAdmin() {
     const sel = d.courses.find(c => c.id == ACOURSE);
     const tags = c => `<span class="tag ${+c.is_free ? 'or' : ''}">${+c.is_free ? 'Free' : 'Paid'}</span> <span class="tag ${+c.published ? 'ok' : 'bad'}">${+c.published ? 'Live' : 'Hidden'}</span>`;
     if (!sel) {
+      if(ACOURSE){ACOURSE=0;syncPage();}
       const nl = d.courses.reduce((a, c) => a + c.lessons.length, 0), nv = d.courses.reduce((a, c) => a + c.lessons.filter(l => l.yt).length, 0);
       $('#app').innerHTML = seg + `<div class="phead"><h1>Courses</h1><div class="row"><button class="btn" id="cats">Categories</button><button class="btn pri" id="nc">New course</button></div></div>
         ${courseTools(d.courses,d.categories)}<div class="course-grid">${d.courses.map(c => { const n = c.lessons.length, v = c.lessons.filter(l => l.yt).length; return `<div class="card tap course-card" data-sc="${c.id}" ${courseAttr(c)} tabindex="0" role="button" aria-label="Open ${esc(c.title)}">${cover(c)}<div class="course-body">
@@ -502,7 +507,7 @@ async function viewAdmin() {
           ${l.questions.map((q, k) => `<div class="qrow"><div><b>Q${k + 1}.</b> ${esc(q.q)}</div><div class="row" style="flex-wrap:wrap;margin-top:4px"><span class="ans">${esc([q.a, q.b, q.c, q.d][q.correct])}</span><button class="link sm" data-eq="${q.id}" data-lid="${l.id}">Edit</button><button class="link sm" data-del="question:${q.id}">Delete</button></div></div>`).join('')}
           <div class="row" style="margin-top:14px;flex-wrap:wrap">${l.yt ? `<button class="btn sm pri" data-pv="${l.id}">Preview</button>` : ''}<button class="btn sm" data-el="${l.id}">Edit lesson</button><button class="btn sm" data-nq="${l.id}">Add question</button><button class="btn sm danger" data-del="lesson:${l.id}">Delete</button></div>
         </div></div></div></div>`).join('') || '<div class="card"><b>No lessons yet</b><p class="mut sm">Tap Add lesson, give it a title, and paste the unlisted YouTube link.</p></div>'}`;
-      $('#backc').onclick = () => { ACOURSE = 0; viewAdmin(); };
+      $('#backc').onclick = () => { ACOURSE = 0; go(adminHash()); };
       // Small video on the left of each lesson: a still picture until tapped, then it plays in place. Only one plays at a time.
       const bindThumbs = () => document.querySelectorAll('.lthumb[data-yt] button').forEach(b => b.onclick = () => { const t = b.parentElement;
         document.querySelectorAll('.lthumb[data-yt]').forEach(o => { if (o !== t && o.querySelector('iframe')) o.innerHTML = thumb(o.dataset.yt, ''); });
@@ -526,7 +531,7 @@ async function viewAdmin() {
     const lf = (l = {}, cid) => formSheet(l.id ? 'Edit lesson' : 'Add lesson', [{name: 'title', label: 'Lesson title', value: l.title}, {name: 'yt', label: 'YouTube link (unlisted)', value: l.yt, hint: 'Paste the video or Shorts link. Leave blank to add it later.'}, {name: 'sort', label: 'Order (1 = first)', type: 'number', value: l.sort ?? ((all.find(c => c.id == cid) || {lessons: []}).lessons.length + 1)}], 'Save', async (v, close) => { await api('a_lesson_save', {...v, id: l.id || 0, course_id: cid, duration: +l.duration || 0}); close(); viewAdmin(); });
     const qf = (q = {}, lid) => formSheet(q.id ? 'Edit question' : 'Add question', [{name: 'q', label: 'Question', value: q.q}, {name: 'a', label: 'Option 1', value: q.a}, {name: 'b', label: 'Option 2', value: q.b}, {name: 'c', label: 'Option 3 (optional)', value: q.c}, {name: 'd', label: 'Option 4 (optional)', value: q.d}, {name: 'correct', label: 'Correct option', type: 'select', value: q.correct ?? 0, options: [[0, 'Option 1'], [1, 'Option 2'], [2, 'Option 3'], [3, 'Option 4']]}], 'Save', async (v, close) => { await api('a_question_save', {...v, correct: +v.correct, id: q.id || 0, lesson_id: lid}); close(); viewAdmin(); });
     if ($('#nc')) $('#nc').onclick = () => openCF({});
-    document.querySelectorAll('[data-sc]').forEach(b => { b.onclick = () => { ACOURSE = +b.dataset.sc; viewAdmin(); window.scrollTo(0, 0); }; b.onkeydown = e => { if (e.key === 'Enter') b.onclick(); }; });
+    document.querySelectorAll('[data-sc]').forEach(b => { b.onclick = () => { ACOURSE = +b.dataset.sc; go(adminHash()); }; b.onkeydown = e => { if (e.key === 'Enter') b.onclick(); }; });
     document.querySelectorAll('[data-ec]').forEach(b => b.onclick = () => openCF(all.find(c => c.id == b.dataset.ec)));
     document.querySelectorAll('[data-nl]').forEach(b => b.onclick = () => lf({}, +b.dataset.nl));
     document.querySelectorAll('[data-el]').forEach(b => b.onclick = () => lf(L(b.dataset.el), 0));
@@ -538,7 +543,7 @@ async function viewAdmin() {
         <h2>Test after this lesson</h2>${l.questions.map((q, i) => `<div class="card"><b>${i + 1}. ${esc(q.q)}</b>${[q.a, q.b, q.c, q.d].map((o, n) => o ? `<div class="opt ${n == q.correct ? 'right' : ''}" style="cursor:default"><span>${esc(o)}${n == q.correct ? ' (correct)' : ''}</span></div>` : '').join('')}</div>`).join('') || '<p class="mut">No questions yet.</p>'}`,
         (d, close) => { $('.x', d).onclick = close; }); });
     document.querySelectorAll('[data-eq]').forEach(b => b.onclick = () => qf(Q(b.dataset.eq), +b.dataset.lid));
-    document.querySelectorAll('[data-del]').forEach(b => b.onclick = function () { if (!this.dataset.sure) { this.dataset.sure = 1; this.textContent = 'Tap again to delete'; return; } const [what, id] = this.dataset.del.split(':'); api('a_delete', {what, id: +id}).then(() => { if (what === 'course') ACOURSE = 0; toast('Deleted'); viewAdmin(); }).catch(e => sheet(`<div class="err">${esc(e.message)}</div>`)); });
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = function () { if (!this.dataset.sure) { this.dataset.sure = 1; this.textContent = 'Tap again to delete'; return; } const [what, id] = this.dataset.del.split(':'); api('a_delete', {what, id: +id}).then(() => { if (what === 'course') {ACOURSE = 0; syncPage();} toast('Deleted'); viewAdmin(); }).catch(e => sheet(`<div class="err">${esc(e.message)}</div>`)); });
   }
   bindAdminSeg();
 }
@@ -551,9 +556,14 @@ async function route() {
     const h = location.hash || '#/';
     if (h.startsWith('#/setup')) return viewSetup();
     if (!ME.user) return viewAuth(h === '#/start' ? 'signup' : 'login');
-    const m = h.match(/^#\/(course|lesson)\/(\d+)/);
+    const ah=h.match(/^#\/admin\/(biz|content|owner|learn)(?:\/(\d+))?$/);
+    const oh=h.match(/^#\/owner\/(owner|learner|profile)$/);
+    if(ME.user.role==='admin' && ah){ATAB=ah[1];ACOURSE=ATAB==='content'?+(ah[2]||0):0;ABIZ=ATAB==='owner'?+(ah[2]||0):0;}
+    if(ME.user.role==='owner' && oh){VIEW=oh[1];}
+    const m = h.match(/^#\/(course|lesson)\/(\d+)$/);
     if (m) return await (m[1] === 'course' ? viewCourse(+m[2]) : viewLesson(+m[2]));
-    if (ME.user.role === 'admin') return await viewAdmin();
+    if (ME.user.role === 'admin') {syncPage(); return await viewAdmin();}
+    if (ME.user.role === 'owner') syncPage();
     if (ME.user.role === 'owner' && VIEW === 'profile') return viewProfile();
     if (ME.user.role === 'owner' && VIEW === 'owner') return await viewOwner();
     return await viewLearn();
